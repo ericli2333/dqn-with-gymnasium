@@ -1,6 +1,7 @@
-from collections import deque
+from collections import deque, namedtuple
 import random
-
+Transition = namedtuple('Transion', 
+                        ('state', 'action', 'next_state', 'reward'))
 class ReplayBuffer(object):
     def __init__(self,
                 capacity: int = 100000,
@@ -12,10 +13,10 @@ class ReplayBuffer(object):
         self.index = 0
         self.batch_size = batch_size
         
-    def add(self, State, Action, Reward, NextState):
+    def add(self, *args):
         if len(self.buffer) >= self.capacity:
             self.buffer.popleft()
-        self.buffer.append((State, Action, Reward, NextState))
+        self.buffer.append(Transition(*args))
         self.curSize = len(self.buffer)
         
     def sample(self):

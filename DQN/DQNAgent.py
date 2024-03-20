@@ -3,6 +3,9 @@ from utility import QApproximation
 from utility.ReplayBuffer import Experience
 import torch
 import numpy as np
+from collections import namedtuple
+Transition = namedtuple('Transion', 
+                        ('state', 'action', 'next_state', 'reward'))
 
 class DQN_agent():
     def __init__(self,
@@ -25,18 +28,19 @@ class DQN_agent():
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
             self.ValueNetWork.to(self.device)
-        
-    def convert_list_to_tensor(self, list):
-        tensor = torch.tensor(list, dtype=torch.float32)
-        tensor = tensor.unsqueeze(0)
-        return tensor
+
+    def get_state(self,observation):
+        state = np.array(observation)
+        state = torch.from_numpy(state)
+        state = state.unsqueeze(0)
+        return state
     
     def get_action(self, state):
         assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         if torch.rand(1) < self.epsilon:
             action = torch.randint(0, self.n_actions, (1,))
         else:
-            action = self.ValueNetWork(state).argmax()
+            action = self.ValueNetWork(state).detach().max(dim=1)[1].view(1,1)
         return action
     
     def receive_response(self, state:torch.Tensor
@@ -51,39 +55,10 @@ class DQN_agent():
     def train(self):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return
-        samples = self.replay_buffer.sample()
+        transitions = self.replay_buffer.sample()
         totalLoss = 0
-        for sample in samples:
-            # print("1")
-            state = sample[0]
-            action = sample[1]
-            reward = sample[2]
-            next_state = sample[3]
-            # print(f"before State.shape:{state.shape}")
-            # state = self.convert_list_to_tensor(state)
-            # print(f"after State.shape:{state.shape}")
-            # reward = torch.tensor(reward, dtype=torch.float32)
-            next_state = self.convert_list_to_tensor(next_state)
-            q_values = self.ValueNetWork(state)[0][action]
-            next_q_values = self.ValueNetWork(next_state).max(dim=0).values
-            target_q_values = reward + self.gamma * next_q_values
-            loss = torch.nn.functional.mse_loss(q_values, target_q_values)
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            totalLoss += loss.item()
-            # print(f'loss: {loss.item()}')
-        
-        # states = torch.cat(states)
-        # actions = torch.cat(actions)
-        # rewards = torch.cat(rewards)
-        # next_states = torch.cat(next_states)
-        # q_values = self.ValueNetWork(states).gather(1, actions)
-        # next_q_values = self.ValueNetWork(next_states).max(dim=1).values    
-        # target_q_values = rewards + self.gamma * next_q_values
-        # loss = torch.nn.functional.mse_loss(q_values, target_q_values)
-        # self.optimizer.zero_grad()
-        # loss.backward()
-        # self.optimizer.step()
-        return loss
+        batch =  Transition(*zip(*transitions))
+        actions = tuple((map(lambda a: torch.tensor([[a]], device='cuda'), batch.action)))
+        rewards = tuple((map(lambda r: torch.tensor([r], device='cuda'), batch.reward)))
+        return totalLoss
         
