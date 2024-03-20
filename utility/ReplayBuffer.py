@@ -21,3 +21,14 @@ class ReplayBuffer(object):
     def sample(self):
         batch = random.sample(self.buffer, self.batch_size)
         return batch
+
+        
+if __name__ == '__main__':
+    RB = ReplayBuffer(100000,4)
+    for i in range(100):
+        RB.add(i, i, i, i)
+        
+    for _ in range(30):
+        batch = RB.sample()
+        print(batch)
+    
