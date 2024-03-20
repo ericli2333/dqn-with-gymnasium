@@ -17,7 +17,8 @@ class NetWork(nn.Module):
         outheight2, outwidth2 = self.CurvOutputSizeCount(outheight1, outwidth1, 4, 2)
         outheight3, outwidth3 = self.CurvOutputSizeCount(outheight2, outwidth2, 3, 1)
         self.liner_input_size = outheight3*outwidth3*32
-        self.fc = nn.Linear(self.liner_input_size, action_num)
+        self.fc1 = nn.Linear(self.liner_input_size, 512)
+        self.fc2 = nn.Linear(512, action_num)
 
     def CurvOutputSizeCount(input_height, input_width, kernel_size, stride):
         output_height = (input_height - kernel_size) / stride + 1
@@ -31,6 +32,7 @@ class NetWork(nn.Module):
         x = nn.functional.relu(x)
         x = self.curv3(x)
         x = x.view(-1, self.liner_input_size)  # 展平卷积层的输出
+        x = self.fc1(x)
         x = nn.functional.relu(x)
-        x = self.fc(x)
+        x = self.fc2(x)
         return x
