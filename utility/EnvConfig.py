@@ -8,6 +8,9 @@ class DQNenv(object):
         self.env = gym.make(name, render_mode='rgb_array')
         self.n_actions = self.env.action_space.n
         self.state_dim = self.env.observation_space.shape
+
+    def info(self):
+        print(f'env_name: {self.name}, n_actions: {self.n_actions}, state_dim: {self.state_dim}')
         
     def testEnv(self):
         rewards = []    
@@ -30,4 +33,4 @@ class DQNenv(object):
         
 if __name__ == "__main__":
     Env = DQNenv('PongNoFrameskip-v4')
-    Env.testEnv()
+    Env.info()
