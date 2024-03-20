@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 class DQNenv(object):
     def __init__(self,name) -> None:
         self.name = name
-        self.env = GrayScaleObservation(gym.make(name, render_mode='rgb_array'))
+        self.env = GrayScaleObservation(gym.make(name))
         self.env = ResizeObservation(self.env, 84)
         self.n_actions = self.env.action_space.n
         self.state_dim = self.env.observation_space.shape
