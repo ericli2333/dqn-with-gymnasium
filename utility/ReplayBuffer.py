@@ -1,12 +1,5 @@
 from collections import deque
 import random
-class Experience(object):
-    def __init__(self,state,action,reward,nextState) -> None:
-        self.state = state
-        self.action = action
-        self.reward = reward
-        self.nextState = nextState
-        self.terminal = False
 
 class ReplayBuffer(object):
     def __init__(self,
