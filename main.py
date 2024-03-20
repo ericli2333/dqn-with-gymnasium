@@ -1,5 +1,6 @@
-import utility.EnvConfig as env
+import DQN.DQNTrainer as DQNTrainer
 
 if __name__ == "__main__":
-    Env = env.DQNenv('PongNoFrameskip-v4')
-    Env.testEnv()
+    trainer = DQNTrainer.DQNTrainer(env_name='PongNoFrameskip-v4')
+    trainer.train(max_episode=1000)
+    trainer.paint()

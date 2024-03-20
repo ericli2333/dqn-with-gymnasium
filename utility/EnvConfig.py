@@ -2,6 +2,8 @@ import gymnasium as gym
 from gymnasium.wrappers import GrayScaleObservation, ResizeObservation
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
+import numpy as np
 
 class DQNenv(object):
     def __init__(self,name) -> None:
@@ -26,13 +28,18 @@ class DQNenv(object):
                 observation, info = self.env.reset()
 
         self.env.close()
-        plt.plot(rewards)
-        plt.imshow(observation)
+        print(observation.shape)
+        tensor = torch.tensor(observation, dtype=torch.float32)
+        tensor = tensor.unsqueeze(-1)
+        print(tensor.shape)
+        # plt.plot(rewards)
+        # plt.imshow(observation)
         print(f'action: {action} info: {info},w:{observation.shape[1]},h:{observation.shape[0]}')
         # print(state)
-        plt.savefig('./image/testEnv.png')
+        # plt.savefig('./image/testEnv.png')
         self.env.close()
         
 if __name__ == "__main__":
     Env = DQNenv('PongNoFrameskip-v4')
+    Env.testEnv()
     Env.info()

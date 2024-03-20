@@ -15,13 +15,15 @@ class ReplayBuffer(object):
                 ) -> None:
         self.buffer = []
         self.capacity = capacity
+        self.curSize = 0
         self.index = 0
         self.batch_size = batch_size
         
-    def add(self, experience:Experience):
-        if len(self.buffer) >= self.max_size:
+    def add(self, State, Action, Reward, NextState):
+        if len(self.buffer) >= self.capacity:
             self.buffer.popleft()
-        self.buffer.append(experience)
+        self.buffer.append((State, Action, Reward, NextState))
+        self.curSize = len(self.buffer)
         
     def sample(self):
         batch = random.sample(self.buffer, self.batch_size)
