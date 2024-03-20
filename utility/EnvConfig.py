@@ -1,11 +1,13 @@
 import gymnasium as gym
+from gymnasium.wrappers import GrayScaleObservation, ResizeObservation
 import numpy as np
 import matplotlib.pyplot as plt
 
 class DQNenv(object):
     def __init__(self,name) -> None:
         self.name = name
-        self.env = gym.make(name, render_mode='rgb_array')
+        self.env = GrayScaleObservation(gym.make(name, render_mode='rgb_array'))
+        self.env = ResizeObservation(self.env, 84)
         self.n_actions = self.env.action_space.n
         self.state_dim = self.env.observation_space.shape
 
