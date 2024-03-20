@@ -9,7 +9,7 @@ class DQN_agent():
                  in_channels=1, 
                  n_actions = 0, 
                  learning_rate=1e-4, 
-                 buffer_size=10000, 
+                 buffer_size=100000, 
                  epsilon = 0.95,
                  gamma = 0.95
                  ):
@@ -19,7 +19,7 @@ class DQN_agent():
         self.buffer_size = buffer_size
         self.epsilon = epsilon
         self.gamma = gamma
-        self.replay_buffer = rb.ReplayBuffer(self.buffer_size)
+        self.replay_buffer = rb.ReplayBuffer(capacity=self.buffer_size, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
         self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
         if torch.cuda.is_available():
@@ -32,11 +32,7 @@ class DQN_agent():
         return tensor
     
     def get_action(self, state):
-        # state = torch.tensor(state, dtype=torch.float32)
-        # state = state.unsqueeze(-1)
-        # print(f'state: {state}')
-        # state =  self.convert_list_to_tensor(state)
-        # print(f'state.shape in get action: {state.shape}')
+        assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         if torch.rand(1) < self.epsilon:
             action = torch.randint(0, self.n_actions, (1,))
         else:
@@ -47,6 +43,8 @@ class DQN_agent():
                          ,reward
                          ,action
                          ,next_state:torch.Tensor):
+        assert(state.dtype == torch.float32 and state.shape == (1,84,84))
+        assert(next_state.dtype == torch.float32 and next_state.shape == (1,84,84))
         self.replay_buffer.add(state, action, reward, next_state)
         self.train()
 

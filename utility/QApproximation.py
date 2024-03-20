@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
+import torch.nn.functional as F
 
 class NetWork(nn.Module):
     def __init__(self,
@@ -10,31 +11,24 @@ class NetWork(nn.Module):
                  action_num : int = 5, 
                  ):
         super(NetWork, self).__init__()
-        self.curv1 = nn.Conv2d(in_channels=in_channels, out_channels=16,stride=4, kernel_size=(8,8))
-        self.curv2 = nn.Conv2d(in_channels= 16,out_channels=32,stride=2, kernel_size=(4,4))
-        self.curv3 = nn.Conv2d(in_channels= 32,out_channels=64,stride=1, kernel_size=(3,3))
-        # 计算全连接层的输入大小
-        # print(f"input_shape[0]:{input_shape[0]}, input_shape[1]:{input_shape[1]}")
-        outheight1, outwidth1 = self.CurvOutputSizeCount(input_height, input_width, 8, 4)
-        outheight2, outwidth2 = self.CurvOutputSizeCount(outheight1, outwidth1, 4, 2)
-        outheight3, outwidth3 = self.CurvOutputSizeCount(outheight2, outwidth2, 3, 1)
-        self.liner_input_size = int(outheight3*outwidth3*3)
-        self.fc1 = nn.Linear(3136, 512)
-        self.fc2 = nn.Linear(512, action_num)
-
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
+        # self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        # self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        # self.bn3 = nn.BatchNorm2d(64)
+        self.fc4 = nn.Linear(7 * 7 * 64, 512)
+        self.head = nn.Linear(512, action_num)
+    
     def CurvOutputSizeCount(self,height, width, kernel_size, stride):
         output_height = (height - kernel_size) / stride + 1
         output_width = (width - kernel_size) / stride + 1
         return output_height, output_width        
         
     def forward(self, x):
-        x = self.curv1(x)
-        # x = nn.functional.relu(x)
-        x = self.curv2(x)
-        # x = nn.functional.relu(x)
-        x = self.curv3(x)
-        x = x.view(-1, 3136)  # 展平卷积层的输出
-        x = self.fc1(x)
-        x = nn.functional.relu(x)
-        x = self.fc2(x)
-        return x
+        x = x.float() / 255
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.fc4(x.view(x.size(0), -1)))
+        return self.head(x)
