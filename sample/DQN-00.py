@@ -2,7 +2,7 @@
 环境配置
 """
 
-import gymnasium as gym
+import gym
 import random, pickle, os.path, math, glob
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ import pdb
 
 from gym.wrappers import AtariPreprocessing, LazyFrames, FrameStack
 
-from IPython.display import clear_output
+# from IPython.display import clear_output
 from torch.utils.tensorboard.writer import SummaryWriter
 
 USE_CUDA = torch.cuda.is_available()
@@ -335,7 +335,7 @@ summary_writer.close()
 """
 
 def plot_training(frame_idx, rewards, losses):
-    clear_output(True)
+    # clear_output(True)
     plt.figure(figsize=(20,5))
     plt.subplot(131)
     plt.title('frame %s. reward: %s' % (frame_idx, np.mean(rewards[-10:])))

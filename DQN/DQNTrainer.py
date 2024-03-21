@@ -9,7 +9,7 @@ from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter   
 
 class DQNTrainer(object):
-    def __init__(self, env_name, in_channels=1, learning_rate=1e-4, buffer_size=10000, epsilon = 0.95, gamma = 0.95):
+    def __init__(self, env_name, in_channels=1, learning_rate=1e-4, buffer_size=10000, epsilon = 0.9, gamma = 0.95):
         # 获取当前时间
         current_time = datetime.now()
 
@@ -37,31 +37,18 @@ class DQNTrainer(object):
         for episode in range(max_episode):
             print(f'episode: {episode}')
             state = self.env.env.reset()
-            # print(f'state:\n {state[0].shape}')
             state = self.get_state(state[0])
-            # state = torch.tensor(state[0], dtype=torch.float32)
-            # state = state.unsqueeze(0)
-            # print(f'state in trainer:\n {state.shape}')
             episode_reward = 0
             i = 0
-            non_zero = 0
             while True:
-                # print(f"i: {i}")
                 i += 1
                 assert(state.shape == (1,84,84) and state.dtype == torch.float32)
                 actions = self.agent.get_action(state)
                 action = actions[0]
-                # print(actions)
                 observation, reward, terminated, truncated, info = self.env.env.step(action)
-                # next_state, reward, done, _ = self.env.env.step(action)
                 observation = self.get_state(observation)
-                # reward = torch.tensor(reward, dtype=torch.float32).to(self.device)
-                # action = torch.tensor(action, dtype=torch.int8).to(self.device)
                 self.agent.receive_response(state, reward, action, observation)
-                # print(f'action:{action},reward: {reward},episode_reward: {episode_reward},info: {info}')
-                # input('Press Enter to continue...')
                 episode_reward += reward
-                if reward != 0 : non_zero += 1
                 state = observation
                 # self.writer.add_scalar(f'reward {episode}', reward, i)
                 if terminated or truncated:

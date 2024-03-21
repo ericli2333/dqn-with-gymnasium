@@ -10,7 +10,7 @@ class DQN_agent():
                  n_actions = 0, 
                  learning_rate=2.5e-4, 
                  buffer_size=100000, 
-                 epsilon = 0.95,
+                 epsilon = 0.9,
                  gamma = 0.95
                  ):
         self.in_channels = in_channels
@@ -36,7 +36,7 @@ class DQN_agent():
     
     def get_action(self, state):
         assert(state.dtype == torch.float32 and state.shape == (1,84,84))
-        if torch.rand(1) < self.epsilon:
+        if torch.rand(1) > self.epsilon:
             action = torch.randint(0, self.n_actions, (1,))
         else:
             with torch.no_grad():
