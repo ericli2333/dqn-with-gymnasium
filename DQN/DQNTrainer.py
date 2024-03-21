@@ -56,9 +56,11 @@ class DQNTrainer(object):
                     # reward = torch.tensor(reward, dtype=torch.float32).to(self.device)
                     # action = torch.tensor(action, dtype=torch.int8).to(self.device)
                     self.agent.receive_response(state, reward, action, observation)
+                    # print(f'action:{action},reward: {reward},episode_reward: {episode_reward},info: {info}')
+                    # input('Press Enter to continue...')
                     episode_reward += reward
                     state = observation
-                if terminated or truncated or i >= 1000:
+                if terminated or truncated:
                     break
             self.rewards.append(episode_reward)
             print(f'episode: {episode}, reward: {episode_reward}')
@@ -66,6 +68,7 @@ class DQNTrainer(object):
             loss = self.agent.train()
             self.losses.append(loss)
             self.writer.add_scalar('loss', loss, episode)
+            # self.writer.add_scalar('i',i,episode)
             print(f'episode: {episode}, loss: {loss}')
             
     def paint(self):

@@ -8,7 +8,7 @@ class DQN_agent():
     def __init__(self,
                  in_channels=1, 
                  n_actions = 0, 
-                 learning_rate=1e-4, 
+                 learning_rate=2.5e-4, 
                  buffer_size=100000, 
                  epsilon = 0.95,
                  gamma = 0.95
@@ -22,7 +22,7 @@ class DQN_agent():
         self.gamma = gamma
         self.replay_buffer = rb.replayBuffer(capacity=self.buffer_size, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
-        self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.RMSprop(self.ValueNetWork.parameters(), lr=self.learning_rate)
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
             self.ValueNetWork.to(self.device)
