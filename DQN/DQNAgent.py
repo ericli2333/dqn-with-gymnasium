@@ -47,7 +47,7 @@ class DQN_agent():
                 output = self.ValueNetWork(state).detach()
                 action = output.argmax(dim=1)
                 del output
-                torch.cuda.empty_cache()
+                # torch.cuda.empty_cache()
         return action
     
     def receive_response(self, state
