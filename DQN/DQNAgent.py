@@ -42,10 +42,12 @@ class DQN_agent():
         else:
             if type(state) != torch.Tensor:
                 state = self.get_state(state)
-            # with torch.no_grad():
+            with torch.no_grad():
                 state = state.repeat(32,1,1,1)
-                output = self.ValueNetWork(state)
+                output = self.ValueNetWork(state).detach()
                 action = output.argmax(dim=1)
+                del output
+                torch.cuda.empty_cache()
         return action
     
     def receive_response(self, state
@@ -69,7 +71,8 @@ class DQN_agent():
         # input("Press Enter to continue...")
         loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values)
         self.optimizer.zero_grad()
-        loss.backward
+        loss.backward()
         self.optimizer.step()
+        del Q_values, next_Q_values, expected_Q_values, values
         return loss
         
