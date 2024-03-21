@@ -40,14 +40,9 @@ class DQN_agent():
             action = torch.randint(0, self.n_actions, (1,))
         else:
             with torch.no_grad():
-                # print(state.shape)
                 state = state.repeat(32,1,1,1)
                 output = self.ValueNetWork(state).detach()
-                # print(output)
                 action = output.argmax(dim=1)
-                # print(action)
-                # input('Press Enter to continue...')
-        # print(action)
         return action
     
     def receive_response(self, state:torch.Tensor
@@ -57,39 +52,16 @@ class DQN_agent():
         assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         assert(next_state.dtype == torch.float32 and next_state.shape == (1,84,84))
         self.replay_buffer.add(state, action, reward, next_state)
-        # for _ in range(4):
         self.train()
 
     def train(self):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return
         states, rewards, actions, next_states = self.replay_buffer.sample()
-        # print(transitions[0])
-        # input('Press Enter to continue...')
-        # states = [row[0] for row in transitions]
-        # rewards = [row[1] for row in transitions]
-        # print(rewards)
-        # input('Press Enter to continue...')
-        # actions = [row[2] for row in transitions]
-        # next_states = [row[3] for row in transitions]
-        # states = torch.cat(states)
-        # states = states.unsqueeze(1)
-        # # rewards = torch.stack(rewards)
-        # # actions = torch.stack(actions)
-        # next_states = torch.cat(next_states)
-        # next_states = next_states.unsqueeze(1)
-        # print(states.shape)
         Q_values = self.ValueNetWork(states)
         next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0]
-        # rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
         expected_Q_values = rewards + self.gamma * next_Q_values
-        # values = []
-        # for estValue, action in zip(Q_values, actions):
-            # values.append(estValue[int(action)])
-        # values = torch.stack(values)
         values = Q_values[range(states.shape[0]),actions.long()]
-        # print(Q_values.shape,values.shape, expected_Q_values.shape)
-        # os.pause()
         loss = torch.nn.functional.mse_loss(values, expected_Q_values)
         self.optimizer.zero_grad()
         loss.backward
