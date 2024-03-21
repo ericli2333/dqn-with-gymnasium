@@ -43,7 +43,10 @@ class DQN_agent():
                 # print(state.shape)
                 state = state.repeat(32,1,1,1)
                 output = self.ValueNetWork(state).detach()
+                # print(output)
                 action = output.argmax(dim=1)
+                # print(action)
+                # input('Press Enter to continue...')
         # print(action)
         return action
     
