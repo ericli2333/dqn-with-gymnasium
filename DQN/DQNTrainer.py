@@ -5,9 +5,17 @@ import torch
 import numpy as np
 import os
 import sys
+from datetime import datetime
+from torch.utils.tensorboard import SummaryWriter   
 
 class DQNTrainer(object):
     def __init__(self, env_name, in_channels=1, learning_rate=1e-4, buffer_size=10000, epsilon = 0.95, gamma = 0.95):
+        # 获取当前时间
+        current_time = datetime.now()
+
+        # 将日期时间对象转换为特定格式的字符串
+        formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+        self.writer = SummaryWriter(log_dir=f'logs/DQN/{formatted_time}')
         self.env = Env.DQNenv(env_name)
         self.n_actions = self.env.n_actions
         self.env.info()
@@ -54,8 +62,10 @@ class DQNTrainer(object):
                     break
             self.rewards.append(episode_reward)
             print(f'episode: {episode}, reward: {episode_reward}')
+            self.writer.add_scalar('reward', episode_reward, episode)
             loss = self.agent.train()
             self.losses.append(loss)
+            self.writer.add_scalar('loss', loss, episode)
             print(f'episode: {episode}, loss: {loss}')
             
     def paint(self):
