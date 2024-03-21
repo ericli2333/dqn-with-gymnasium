@@ -35,7 +35,10 @@ class DQN_agent():
         return state
     
     def get_action(self, state):
-        assert(state.dtype == torch.float32 and state.shape == (1,84,84))
+        # print(f"state: {state}")
+        if type(state) != torch.Tensor:
+            state = self.get_state(state)
+        # assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         if torch.rand(1) > self.epsilon:
             action = torch.randint(0, self.n_actions, (1,))
         else:
@@ -45,12 +48,12 @@ class DQN_agent():
                 action = output.argmax(dim=1)
         return action
     
-    def receive_response(self, state:torch.Tensor
+    def receive_response(self, state
                          ,reward
                          ,action
-                         ,next_state:torch.Tensor):
-        assert(state.dtype == torch.float32 and state.shape == (1,84,84))
-        assert(next_state.dtype == torch.float32 and next_state.shape == (1,84,84))
+                         ,next_state):
+        # assert( state.shape == (1,84,84))
+        # assert( next_state.shape == (1,84,84))
         self.replay_buffer.add(state, action, reward, next_state)
         self.train()
 

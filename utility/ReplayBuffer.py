@@ -13,6 +13,15 @@ class replayBuffer(object):
         self.index = 0
         self.batch_size = batch_size
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    def get_state(self,observation):
+        observation = list(observation)
+        state = np.array(observation, dtype=np.float32)
+        state = torch.from_numpy(state)
+        state = state.unsqueeze(0)
+        state = state.to(self.device)
+        return state
+
         
     def add(self, State, Action, Reward, NextState):
         if type(State) == torch.Tensor:
@@ -36,8 +45,8 @@ class replayBuffer(object):
         next_states = []
         for i in range(batch_size):
             idx = random.randint(0, self.curSize - 1)
-            state = torch.from_numpy(self.buffer[idx][0]).to(self.device)
-            next_state = torch.from_numpy(self.buffer[idx][3]).to(self.device)
+            state = self.get_state(self.buffer[idx][0])
+            next_state = self.get_state(self.buffer[idx][3])
             states.append(state)
             actions.append(int(self.buffer[idx][1]))
             rewards.append(self.buffer[idx][2])

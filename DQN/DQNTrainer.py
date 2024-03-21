@@ -37,16 +37,17 @@ class DQNTrainer(object):
         for episode in range(max_episode):
             print(f'episode: {episode}')
             state = self.env.env.reset()
-            state = self.get_state(state[0])
+            # state = self.get_state(state[0])
+            state = state[0]
             episode_reward = 0
             i = 0
             while True:
                 i += 1
-                assert(state.shape == (1,84,84) and state.dtype == torch.float32)
+                # assert(state.shape == (1,84,84) and state.dtype == torch.float32)
                 actions = self.agent.get_action(state)
                 action = actions[0]
                 observation, reward, terminated, truncated, info = self.env.env.step(action)
-                observation = self.get_state(observation)
+                # observation = self.get_state(observation)
                 self.agent.receive_response(state, reward, action, observation)
                 episode_reward += reward
                 state = observation
