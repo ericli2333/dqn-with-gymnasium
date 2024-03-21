@@ -24,14 +24,6 @@ class DQNTrainer(object):
         self.losses = []
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
         
-    def get_state(self,observation):
-        observation = list(observation)
-        state = np.array(observation, dtype=np.float32)
-        state = torch.from_numpy(state)
-        state = state.unsqueeze(0)
-        state = state.to(self.device)
-        return state
-
     def train(self, max_episode=1000):
         print("Start training...")
         for episode in range(max_episode):

@@ -36,15 +36,15 @@ class DQN_agent():
     
     def get_action(self, state):
         # print(f"state: {state}")
-        if type(state) != torch.Tensor:
-            state = self.get_state(state)
         # assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         if torch.rand(1) > self.epsilon:
             action = torch.randint(0, self.n_actions, (1,))
         else:
-            with torch.no_grad():
+            if type(state) != torch.Tensor:
+                state = self.get_state(state)
+            # with torch.no_grad():
                 state = state.repeat(32,1,1,1)
-                output = self.ValueNetWork(state).detach()
+                output = self.ValueNetWork(state)
                 action = output.argmax(dim=1)
         return action
     

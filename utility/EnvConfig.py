@@ -11,10 +11,10 @@ class DQNenv(object):
         self.env = GrayScaleObservation(gym.make(name))
         self.env = ResizeObservation(self.env, 84)
         self.n_actions = self.env.action_space.n
-        self.state_dim = self.env.observation_space.shape
+        # self.state_dim = self.env.observation_space.shape
 
     def info(self):
-        print(f'env_name: {self.name}, n_actions: {self.n_actions}, state_dim: {self.state_dim}')
+        print(f'env_name: {self.name}, n_actions: {self.n_actions}')
         
     def testEnv(self):
         rewards = []    
