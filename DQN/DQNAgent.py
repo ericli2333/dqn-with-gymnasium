@@ -54,7 +54,7 @@ class DQN_agent():
         assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         assert(next_state.dtype == torch.float32 and next_state.shape == (1,84,84))
         self.replay_buffer.add(state, action, reward, next_state)
-        for _ in range(5):
+        for _ in range(4):
             self.train()
 
     def train(self):
@@ -76,15 +76,16 @@ class DQN_agent():
         next_states = torch.cat(next_states)
         next_states = next_states.unsqueeze(1)
         # print(states.shape)
-        Q_values = self.ValueNetWork(states).detach()
-        next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0].detach()
+        Q_values = self.ValueNetWork(states)
+        next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0]
         rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
         expected_Q_values = rewards + self.gamma * next_Q_values
-        values = []
-        for estValue, action in zip(Q_values, actions):
-            values.append(estValue[int(action)])
-        values = torch.stack(values)
-        # print(values.shape, expected_Q_values.shape)
+        # values = []
+        # for estValue, action in zip(Q_values, actions):
+            # values.append(estValue[int(action)])
+        # values = torch.stack(values)
+        values = Q_values[range(states.shape[0]),actions]
+        # print(Q_values.shape,values.shape, expected_Q_values.shape)
         # os.pause()
         loss = torch.nn.functional.mse_loss(values, expected_Q_values)
         self.optimizer.zero_grad()
