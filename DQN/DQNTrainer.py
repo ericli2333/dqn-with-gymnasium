@@ -44,6 +44,7 @@ class DQNTrainer(object):
             # print(f'state in trainer:\n {state.shape}')
             episode_reward = 0
             i = 0
+            non_zero = 0
             while True:
                 # print(f"i: {i}")
                 i += 1
@@ -59,12 +60,14 @@ class DQNTrainer(object):
                     # print(f'action:{action},reward: {reward},episode_reward: {episode_reward},info: {info}')
                     # input('Press Enter to continue...')
                     episode_reward += reward
+                    if reward != 0 : non_zero += 1
                     state = observation
+                    # self.writer.add_scalar(f'reward {episode}', reward, i)
                 if terminated or truncated:
                     break
-            self.rewards.append(episode_reward)
-            print(f'episode: {episode}, reward: {episode_reward}')
-            self.writer.add_scalar('reward', episode_reward, episode)
+            self.rewards.append(episode_reward / non_zero)
+            print(f'episode: {episode}, reward: {episode_reward / non_zero}')
+            self.writer.add_scalar('reward', episode_reward / non_zero, episode)
             loss = self.agent.train()
             self.losses.append(loss)
             self.writer.add_scalar('loss', loss, episode)
