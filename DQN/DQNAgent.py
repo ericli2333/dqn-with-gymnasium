@@ -1,11 +1,8 @@
 import utility.ReplayBuffer as rb
 from utility import QApproximation
-from utility.ReplayBuffer import Experience
 import torch
 import numpy as np
-from collections import namedtuple
-Transition = namedtuple('Transion', 
-                        ('state', 'action', 'next_state', 'reward'))
+import os
 
 class DQN_agent():
     def __init__(self,
@@ -17,12 +14,13 @@ class DQN_agent():
                  gamma = 0.95
                  ):
         self.in_channels = in_channels
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
         self.n_actions = n_actions
         self.learning_rate = learning_rate
         self.buffer_size = buffer_size
         self.epsilon = epsilon
         self.gamma = gamma
-        self.replay_buffer = rb.ReplayBuffer(capacity=self.buffer_size, batch_size=32)
+        self.replay_buffer = rb.replayBuffer(capacity=self.buffer_size, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
         self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
         if torch.cuda.is_available():
@@ -33,6 +31,7 @@ class DQN_agent():
         state = np.array(observation)
         state = torch.from_numpy(state)
         state = state.unsqueeze(0)
+        state = state.to(self.device)
         return state
     
     def get_action(self, state):
@@ -40,7 +39,12 @@ class DQN_agent():
         if torch.rand(1) < self.epsilon:
             action = torch.randint(0, self.n_actions, (1,))
         else:
-            action = self.ValueNetWork(state).detach().max(dim=1)[1].view(1,1)
+            with torch.no_grad():
+                # print(state.shape)
+                state = state.repeat(32,1,1,1)
+                output = self.ValueNetWork(state).detach()
+                action = output.argmax(dim=1)
+        # print(action)
         return action
     
     def receive_response(self, state:torch.Tensor
@@ -56,9 +60,34 @@ class DQN_agent():
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return
         transitions = self.replay_buffer.sample()
-        totalLoss = 0
-        batch =  Transition(*zip(*transitions))
-        actions = tuple((map(lambda a: torch.tensor([[a]], device='cuda'), batch.action)))
-        rewards = tuple((map(lambda r: torch.tensor([r], device='cuda'), batch.reward)))
-        return totalLoss
+        # print(transitions[0])
+        # input('Press Enter to continue...')
+        states = [row[0] for row in transitions]
+        rewards = [row[1] for row in transitions]
+        # print(rewards)
+        # input('Press Enter to continue...')
+        actions = [row[2] for row in transitions]
+        next_states = [row[3] for row in transitions]
+        states = torch.cat(states)
+        states = states.unsqueeze(1)
+        # rewards = torch.stack(rewards)
+        # actions = torch.stack(actions)
+        next_states = torch.cat(next_states)
+        next_states = next_states.unsqueeze(1)
+        # print(states.shape)
+        Q_values = self.ValueNetWork(states).detach()
+        next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0].detach()
+        rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
+        expected_Q_values = rewards + self.gamma * next_Q_values
+        values = []
+        for estValue, action in zip(Q_values, actions):
+            values.append(estValue[int(action)])
+        values = torch.stack(values)
+        # print(values.shape, expected_Q_values.shape)
+        # os.pause()
+        loss = torch.nn.functional.mse_loss(values, expected_Q_values)
+        self.optimizer.zero_grad()
+        loss.backward
+        self.optimizer.step()
+        return loss
         
