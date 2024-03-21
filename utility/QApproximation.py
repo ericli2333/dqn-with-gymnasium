@@ -27,8 +27,8 @@ class NetWork(nn.Module):
         
     def forward(self, x):
         x = x.float() / 255
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        x = F.relu(self.fc4(x.view(x.size(0), -1)))
+        x = F.leaky_relu(self.conv1(x))
+        x = F.leaky_relu(self.conv2(x))
+        x = F.leaky_relu(self.conv3(x))
+        x = F.leaky_relu(self.fc4(x.view(x.size(0), -1)))
         return self.head(x)
