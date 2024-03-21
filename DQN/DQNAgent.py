@@ -22,7 +22,7 @@ class DQN_agent():
         self.gamma = gamma
         self.replay_buffer = rb.replayBuffer(capacity=self.buffer_size, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
-        self.optimizer = torch.optim.RMSprop(self.ValueNetWork.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
             self.ValueNetWork.to(self.device)
@@ -62,7 +62,9 @@ class DQN_agent():
         next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0]
         expected_Q_values = rewards + self.gamma * next_Q_values
         values = Q_values[range(states.shape[0]),actions.long()]
-        loss = torch.nn.functional.mse_loss(values, expected_Q_values)
+        # print(f"values: {values}\nexpected_Q_values: {expected_Q_values}")
+        # input("Press Enter to continue...")
+        loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values)
         self.optimizer.zero_grad()
         loss.backward
         self.optimizer.step()
