@@ -50,24 +50,25 @@ class DQNTrainer(object):
                 i += 1
                 assert(state.shape == (1,84,84) and state.dtype == torch.float32)
                 actions = self.agent.get_action(state)
-                for action in actions:
-                    observation, reward, terminated, truncated, info = self.env.env.step(action)
-                    # next_state, reward, done, _ = self.env.env.step(action)
-                    observation = self.get_state(observation)
-                    # reward = torch.tensor(reward, dtype=torch.float32).to(self.device)
-                    # action = torch.tensor(action, dtype=torch.int8).to(self.device)
-                    self.agent.receive_response(state, reward, action, observation)
-                    # print(f'action:{action},reward: {reward},episode_reward: {episode_reward},info: {info}')
-                    # input('Press Enter to continue...')
-                    episode_reward += reward
-                    if reward != 0 : non_zero += 1
-                    state = observation
-                    # self.writer.add_scalar(f'reward {episode}', reward, i)
+                action = actions[0]
+                # print(actions)
+                observation, reward, terminated, truncated, info = self.env.env.step(action)
+                # next_state, reward, done, _ = self.env.env.step(action)
+                observation = self.get_state(observation)
+                # reward = torch.tensor(reward, dtype=torch.float32).to(self.device)
+                # action = torch.tensor(action, dtype=torch.int8).to(self.device)
+                self.agent.receive_response(state, reward, action, observation)
+                # print(f'action:{action},reward: {reward},episode_reward: {episode_reward},info: {info}')
+                # input('Press Enter to continue...')
+                episode_reward += reward
+                if reward != 0 : non_zero += 1
+                state = observation
+                # self.writer.add_scalar(f'reward {episode}', reward, i)
                 if terminated or truncated:
                     break
-            self.rewards.append(episode_reward / non_zero)
-            print(f'episode: {episode}, reward: {episode_reward / non_zero}')
-            self.writer.add_scalar('reward', episode_reward / non_zero, episode)
+            self.rewards.append(episode_reward)
+            print(f'episode: {episode}, reward: {episode_reward}')
+            self.writer.add_scalar('reward', episode_reward, episode)
             loss = self.agent.train()
             self.losses.append(loss)
             self.writer.add_scalar('loss', loss, episode)
