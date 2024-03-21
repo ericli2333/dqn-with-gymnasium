@@ -54,8 +54,8 @@ class DQN_agent():
         assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         assert(next_state.dtype == torch.float32 and next_state.shape == (1,84,84))
         self.replay_buffer.add(state, action, reward, next_state)
-        for _ in range(4):
-            self.train()
+        # for _ in range(4):
+        self.train()
 
     def train(self):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
