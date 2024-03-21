@@ -63,31 +63,31 @@ class DQN_agent():
     def train(self):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return
-        transitions = self.replay_buffer.sample()
+        states, rewards, actions, next_states = self.replay_buffer.sample()
         # print(transitions[0])
         # input('Press Enter to continue...')
-        states = [row[0] for row in transitions]
-        rewards = [row[1] for row in transitions]
+        # states = [row[0] for row in transitions]
+        # rewards = [row[1] for row in transitions]
         # print(rewards)
         # input('Press Enter to continue...')
-        actions = [row[2] for row in transitions]
-        next_states = [row[3] for row in transitions]
-        states = torch.cat(states)
-        states = states.unsqueeze(1)
-        # rewards = torch.stack(rewards)
-        # actions = torch.stack(actions)
-        next_states = torch.cat(next_states)
-        next_states = next_states.unsqueeze(1)
+        # actions = [row[2] for row in transitions]
+        # next_states = [row[3] for row in transitions]
+        # states = torch.cat(states)
+        # states = states.unsqueeze(1)
+        # # rewards = torch.stack(rewards)
+        # # actions = torch.stack(actions)
+        # next_states = torch.cat(next_states)
+        # next_states = next_states.unsqueeze(1)
         # print(states.shape)
         Q_values = self.ValueNetWork(states)
         next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0]
-        rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
+        # rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
         expected_Q_values = rewards + self.gamma * next_Q_values
         # values = []
         # for estValue, action in zip(Q_values, actions):
             # values.append(estValue[int(action)])
         # values = torch.stack(values)
-        values = Q_values[range(states.shape[0]),actions]
+        values = Q_values[range(states.shape[0]),actions.long()]
         # print(Q_values.shape,values.shape, expected_Q_values.shape)
         # os.pause()
         loss = torch.nn.functional.mse_loss(values, expected_Q_values)
