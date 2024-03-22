@@ -52,7 +52,8 @@ class DQNTrainer(object):
             self.writer.add_scalar('loss', loss, episode)
             # self.writer.add_scalar('i',i,episode)
             print(f'episode: {episode}, loss: {loss}')
-            torch.cuda.empty_cache()
+            if episode % 100 == 0:
+                torch.cuda.empty_cache()
             
     def paint(self):
         plt.plot(self.rewards)
