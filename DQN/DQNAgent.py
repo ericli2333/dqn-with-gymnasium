@@ -8,7 +8,7 @@ class DQN_agent():
     def __init__(self,
                  in_channels=4, 
                  n_actions = 0, 
-                 learning_rate=2.5e-4, 
+                 learning_rate=1e-4, 
                  buffer_size=100000, 
                  epsilon = 0.9,
                  gamma = 0.99,
