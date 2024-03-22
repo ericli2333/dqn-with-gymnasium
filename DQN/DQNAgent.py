@@ -11,7 +11,7 @@ class DQN_agent():
                  learning_rate=2.5e-4, 
                  buffer_size=100000, 
                  epsilon = 0.9,
-                 gamma = 0.95
+                 gamma = 0.99
                  ):
         self.in_channels = in_channels
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备

@@ -5,8 +5,6 @@ import torch.nn.functional as F
 
 class NetWork(nn.Module):
     def __init__(self,
-                 input_height : int =84,
-                 input_width : int = 84, 
                  in_channels : int = 1,
                  action_num : int = 5, 
                  ):

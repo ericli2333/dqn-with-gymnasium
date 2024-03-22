@@ -15,7 +15,7 @@ class DQNTrainer(object):
 
         # 将日期时间对象转换为特定格式的字符串
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
-        self.writer = SummaryWriter(log_dir=f'logs/DQN/{formatted_time}')
+        self.writer = SummaryWriter(log_dir=f'logs/DQN/{formatted_time}-env:{env_name}-lr:{learning_rate}-bs:{buffer_size}-eps:{epsilon}-gamma:{gamma}')
         self.env = Env.DQNenv(env_name)
         self.n_actions = self.env.n_actions
         self.env.info()
@@ -32,9 +32,7 @@ class DQNTrainer(object):
             # state = self.get_state(state[0])
             state = state[0]
             episode_reward = 0
-            i = 0
             while True:
-                i += 1
                 # assert(state.shape == (1,84,84) and state.dtype == torch.float32)
                 actions = self.agent.get_action(state)
                 action = actions[0]
