@@ -61,7 +61,7 @@ class DQN_agent():
 
     def train(self):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
-            return
+            return (0)
         states, rewards, actions, next_states = self.replay_buffer.sample()
         Q_values = self.ValueNetWork(states)
         next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0]

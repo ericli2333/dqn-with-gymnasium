@@ -24,35 +24,38 @@ class DQNTrainer(object):
         self.losses = []
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
         
-    def train(self, max_episode=1000):
+    def train(self, max_frame=1000):
         print("Start training...")
-        for episode in range(max_episode):
-            print(f'episode: {episode}')
-            state = self.env.env.reset()
-            # state = self.get_state(state[0])
-            state = state[0]
-            episode_reward = 0
-            while True:
-                # assert(state.shape == (1,84,84) and state.dtype == torch.float32)
-                actions = self.agent.get_action(state)
-                action = actions[0]
-                observation, reward, terminated, truncated, info = self.env.env.step(action)
-                # observation = self.get_state(observation)
-                self.agent.receive_response(state, reward, action, observation)
-                episode_reward += reward
-                state = observation
-                # self.writer.add_scalar(f'reward {episode}', reward, i)
-                if terminated or truncated:
-                    break
-            self.rewards.append(episode_reward)
-            print(f'episode: {episode}, reward: {episode_reward}')
-            self.writer.add_scalar('reward', episode_reward, episode)
+        state = self.env.env.reset()
+        state = state[0]
+        terminated = False
+        truncated = False
+        episode_reward = 0
+        episode = 0
+        for frame in range(max_frame):
+            print(f'frame: {frame}')
+            if terminated or truncated:
+                state = self.env.env.reset()
+                # state = self.get_state(state[0])
+                state = state[0]
+                self.writer.add_scalar('episode reward', episode_reward, episode)
+                episode+=1
+                episode_reward = 0
+            actions = self.agent.get_action(state)
+            action = actions[0]
+            observation, reward, terminated, truncated, info = self.env.env.step(action)
+            self.agent.receive_response(state, reward, action, observation)
+            state = observation
+            episode_reward += reward
+            self.rewards.append(reward)
+            print(f'frame: {frame}, reward: {reward}')
+            self.writer.add_scalar('reward', reward, frame)
             loss = self.agent.train()
             self.losses.append(loss)
-            self.writer.add_scalar('loss', loss, episode)
+            self.writer.add_scalar('loss', loss, frame)
             # self.writer.add_scalar('i',i,episode)
-            print(f'episode: {episode}, loss: {loss}')
-            if episode % 100 == 0:
+            print(f'frame: {frame}, loss: {loss}')
+            if frame % 100 == 0:
                 torch.cuda.empty_cache()
             
     def paint(self):
