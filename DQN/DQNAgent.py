@@ -11,7 +11,8 @@ class DQN_agent():
                  learning_rate=2.5e-4, 
                  buffer_size=100000, 
                  epsilon = 0.9,
-                 gamma = 0.99
+                 gamma = 0.99,
+                 log_level = 1,
                  ):
         self.in_channels = in_channels
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
@@ -20,6 +21,7 @@ class DQN_agent():
         self.buffer_size = buffer_size
         self.epsilon = epsilon
         self.gamma = gamma
+        self.log_level = log_level
         self.replay_buffer = rb.replayBuffer(capacity=self.buffer_size, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
         self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
@@ -67,8 +69,15 @@ class DQN_agent():
         next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0]
         expected_Q_values = rewards + self.gamma * next_Q_values
         values = Q_values[range(states.shape[0]),actions.long()]
-        # print(f"values: {values}\nexpected_Q_values: {expected_Q_values}")
-        # input("Press Enter to continue...")
+        if self.log_level == 2:
+            print(f"values: {values}\nexpected_Q_values: {expected_Q_values}")
+            for name, parms in self.ValueNetWork.named_parameters():	
+                    print('-->name:', name)
+                    print('-->para:', parms)
+                    print('-->grad_requirs:',parms.requires_grad)
+                    print('-->grad_value:',parms.grad)
+                    print("===")
+            input("Press Enter to continue...")
         loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values)
         self.optimizer.zero_grad()
         loss.backward()
