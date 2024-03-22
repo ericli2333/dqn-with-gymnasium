@@ -5,6 +5,7 @@ import torch
 import numpy as np
 import os
 import sys
+import math
 from datetime import datetime
 from torch.utils.tensorboard import SummaryWriter   
 
@@ -15,15 +16,23 @@ class DQNTrainer(object):
                  learning_rate=1e-4, 
                  buffer_size=10000, 
                  epsilon = 0.9, 
+                 epsilon_lower_bound = 0.1,
+                 epsilon_upper_bound = 0.9,
+                 eps_decay = 200000,
                  gamma = 0.95,
                  log_level = 1,
                  ):
+        self.epsilon_lower_bound = epsilon_lower_bound
+        self.epsilon_upper_bound = epsilon_upper_bound
+        self.eps_decay = eps_decay
         # 获取当前时间
         current_time = datetime.now()
 
         # 将日期时间对象转换为特定格式的字符串
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
-        self.writer = SummaryWriter(log_dir=f'logs/DQN/{formatted_time}-env:{env_name}-lr:{learning_rate}-bs:{buffer_size}-eps:{epsilon}-gamma:{gamma}')
+        self.log_level = log_level
+        if log_level == 1:
+            self.writer = SummaryWriter(log_dir=f'logs/DQN/{formatted_time}-env:{env_name}-lr:{learning_rate}-bs:{buffer_size}-eps:{epsilon}-gamma:{gamma}')
         self.env = Env.DQNenv(env_name)
         self.n_actions = self.env.n_actions
         self.env.info()
@@ -39,24 +48,31 @@ class DQNTrainer(object):
         self.losses = []
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
         
+    def calculate_epsilon(self, frame_idx):
+        return self.epsilon_lower_bound + (self.epsilon_upper_bound - self.epsilon_lower_bound) * math.exp(
+            -1. * frame_idx / self.eps_decay)
+
     def train(self, max_frame=1000):
         print("Start training...")
         state = self.env.env.reset()
         state = state[0]
-        terminated = False
-        truncated = False
+        terminated = True
+        truncated = True
         episode_reward = 0
         episode = 0
         for frame in range(max_frame):
+            eps = self.calculate_epsilon(frame)
             print(f'frame: {frame}')
             if terminated or truncated:
                 state = self.env.env.reset()
+                eps = 0
                 # state = self.get_state(state[0])
                 state = state[0]
-                self.writer.add_scalar('episode reward', episode_reward, frame)
-                episode+=1
+                if self.log_level == 1:
+                    self.writer.add_scalar('episode reward', episode_reward, frame)
+                episode += 1
                 episode_reward = 0
-            actions = self.agent.get_action(state)
+            actions = self.agent.get_action(state, eps)
             action = actions[0]
             observation, reward, terminated, truncated, info = self.env.env.step(action)
             if frame % 4 == 0:
@@ -64,13 +80,14 @@ class DQNTrainer(object):
             state = observation
             episode_reward += reward
             self.rewards.append(reward)
-            # print(f'frame: {frame}, reward: {reward}')
-            self.writer.add_scalar('reward', reward, frame)
             loss = self.agent.train()
             self.losses.append(loss)
-            self.writer.add_scalar('loss', loss, frame)
-            # self.writer.add_scalar('i',i,episode)
-            # print(f'frame: {frame}, loss: {loss}')
+            if self.log_level == 1:
+                self.writer.add_scalar('reward', reward, frame)
+                self.writer.add_scalar('loss', loss, frame)
+            if self.log_level == 2:
+                print(f'frame: {frame}, reward: {reward}')
+                print(f'frame: {frame}, loss: {loss}')
             if frame % 100 == 0:
                 torch.cuda.empty_cache()
             

@@ -11,7 +11,7 @@ if __name__ == "__main__":
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--epsilon", type=float, default=0.90, help="Exploration rate")
     parser.add_argument("--max_episode", type=int, default=int(1e9), help="Maximum number of episodes")
-    parser.add_argument("--log_level", type=int, default=1, help="1: tensor board only\n2: show grade")
+    parser.add_argument("--log_level", type=int, default=1, help="1: tensor board only\n2: debug only")
     args = parser.parse_args()
 
     trainer = DQNTrainer.DQNTrainer(env_name=args.env_name,

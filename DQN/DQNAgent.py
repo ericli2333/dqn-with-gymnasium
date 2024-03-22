@@ -36,12 +36,15 @@ class DQN_agent():
         state = state.to(self.device)
         return state
     
-    def get_action(self, state):
+    def get_action(self, state,epsilon):
         # print(f"state: {state}")
         # assert(state.dtype == torch.float32 and state.shape == (1,84,84))
-        if torch.rand(1) > self.epsilon:
+        if torch.rand(1) > epsilon :
             action = torch.randint(0, self.n_actions, (1,))
         else:
+            if self.log_level == 3:
+                print(f"do calculate from network")
+                input("Press Enter to continue...")
             if type(state) != torch.Tensor:
                 state = self.get_state(state)
             with torch.no_grad():
@@ -61,27 +64,37 @@ class DQN_agent():
         self.replay_buffer.add(state, action, reward, next_state)
         self.train()
 
+    def print_model(self):
+        for name, parms in self.ValueNetWork.named_parameters():	
+                print('-->name:', name)
+                print('-->para:', parms)
+                print('-->grad_requirs:',parms.requires_grad)
+                print('-->grad_value:',parms.grad)
+                print("===")
+        input("Press Enter to continue...")
+
+    def calculate_loss(self,states,rewards,actions,next_states):
+        Q_values = self.ValueNetWork(states)
+        values = Q_values[range(states.shape[0]),actions.long()]
+        next_Q_values = self.ValueNetWork(next_states).max(-1)[0]
+        expected_Q_values = rewards + self.gamma * next_Q_values
+        if self.log_level == 2:
+            print(f'values: {values}\nexpected_Q_values: {expected_Q_values}')
+            input("Press Enter to continue...")
+        loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values.detach())
+        return loss
+        
+    
     def train(self):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return (0)
         states, rewards, actions, next_states = self.replay_buffer.sample()
-        Q_values = self.ValueNetWork(states)
-        next_Q_values = self.ValueNetWork(next_states).max(dim=1)[0]
-        expected_Q_values = rewards + self.gamma * next_Q_values
-        values = Q_values[range(states.shape[0]),actions.long()]
-        if self.log_level == 2:
-            print(f"values: {values}\nexpected_Q_values: {expected_Q_values}")
-            for name, parms in self.ValueNetWork.named_parameters():	
-                    print('-->name:', name)
-                    print('-->para:', parms)
-                    print('-->grad_requirs:',parms.requires_grad)
-                    print('-->grad_value:',parms.grad)
-                    print("===")
-            input("Press Enter to continue...")
-        loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values)
+        loss = self.calculate_loss(states, rewards, actions, next_states)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        if self.log_level == 2:
+            self.print_model()
         # del Q_values, next_Q_values, expected_Q_values, values
         return loss
         
