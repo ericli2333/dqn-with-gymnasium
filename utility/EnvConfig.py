@@ -1,5 +1,5 @@
 import gymnasium as gym
-from gymnasium.wrappers import GrayScaleObservation, ResizeObservation
+from gymnasium.wrappers import GrayScaleObservation, ResizeObservation,frame_stack
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -10,6 +10,7 @@ class DQNenv(object):
         self.name = name
         self.env = GrayScaleObservation(gym.make(name))
         self.env = ResizeObservation(self.env, 84)
+        self.env = frame_stack.FrameStack(self.env, num_stack=4)
         self.n_actions = self.env.action_space.n
         # self.state_dim = self.env.observation_space.shape
 

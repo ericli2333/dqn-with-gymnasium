@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 class DQNTrainer(object):
     def __init__(self, 
                  env_name, 
-                 in_channels=1, 
+                 in_channels=4, 
                  learning_rate=1e-4, 
                  buffer_size=10000, 
                  epsilon = 0.9, 
@@ -83,7 +83,7 @@ class DQNTrainer(object):
             loss = self.agent.train()
             self.losses.append(loss)
             if self.log_level == 1:
-                self.writer.add_scalar('reward', reward, frame)
+                # self.writer.add_scalar('reward', reward, frame)
                 self.writer.add_scalar('loss', loss, frame)
             if self.log_level == 2:
                 print(f'frame: {frame}, reward: {reward}')

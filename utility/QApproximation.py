@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class NetWork(nn.Module):
     def __init__(self,
-                 in_channels : int = 1,
+                 in_channels : int = 4,
                  action_num : int = 5, 
                  ):
         super(NetWork, self).__init__()
@@ -24,7 +24,7 @@ class NetWork(nn.Module):
         return output_height, output_width        
         
     def forward(self, x):
-        x = x.float() / 255
+        # x = x.float() / 255
         x = F.leaky_relu(self.conv1(x))
         x = F.leaky_relu(self.conv2(x))
         x = F.leaky_relu(self.conv3(x))

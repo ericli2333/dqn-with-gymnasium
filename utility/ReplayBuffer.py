@@ -18,7 +18,7 @@ class replayBuffer(object):
         observation = list(observation)
         state = np.array(observation, dtype=np.float32)
         state = torch.from_numpy(state)
-        state = state.unsqueeze(0)
+        # state = state.unsqueeze(0)
         state = state.to(self.device)
         return state
 

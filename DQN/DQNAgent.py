@@ -6,7 +6,7 @@ import os
 
 class DQN_agent():
     def __init__(self,
-                 in_channels=1, 
+                 in_channels=4, 
                  n_actions = 0, 
                  learning_rate=2.5e-4, 
                  buffer_size=100000, 
@@ -30,9 +30,9 @@ class DQN_agent():
             self.ValueNetWork.to(self.device)
 
     def get_state(self,observation):
-        state = np.array(observation)
+        state = np.array(observation.__array__()[None]/255, dtype=np.float32)
         state = torch.from_numpy(state)
-        state = state.unsqueeze(0)
+        # state = state.unsqueeze(0)
         state = state.to(self.device)
         return state
     
@@ -42,13 +42,14 @@ class DQN_agent():
         if torch.rand(1) > epsilon :
             action = torch.randint(0, self.n_actions, (1,))
         else:
-            if self.log_level == 3:
-                print(f"do calculate from network")
-                input("Press Enter to continue...")
             if type(state) != torch.Tensor:
                 state = self.get_state(state)
+            # print(f"state_shape: {state.shape}")
+            # state = torch.tensor(state, dtype=torch.float32)
+            # print(f"state_shape: {state.shape}")
+            # input("Press Enter to continue...")
             with torch.no_grad():
-                state = state.repeat(32,1,1,1)
+                # state = state.repeat(32,1,1,1)
                 output = self.ValueNetWork(state).detach()
                 action = output.argmax(dim=1)
                 del output

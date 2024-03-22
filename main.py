@@ -6,7 +6,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_name", type=str, default='PongNoFrameskip-v4', help="Name of the environment")
     parser.add_argument("--buffer_size", type=int, default=32, help="Size of the replay buffer")
-    parser.add_argument("--in_channels", type=int, default=1, help="Number of input channels")
+    parser.add_argument("--in_channels", type=int, default=4, help="Number of input channels")
     parser.add_argument("--learning_rate", type=float, default=2.5e-4, help="Learning rate")
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--epsilon", type=float, default=0.90, help="Exploration rate")
