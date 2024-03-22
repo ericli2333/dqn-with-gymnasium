@@ -73,6 +73,6 @@ class DQN_agent():
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        del Q_values, next_Q_values, expected_Q_values, values
+        # del Q_values, next_Q_values, expected_Q_values, values
         return loss
         
