@@ -75,8 +75,7 @@ class DQNTrainer(object):
             actions = self.agent.get_action(state, eps)
             action = actions[0]
             observation, reward, terminated, truncated, info = self.env.env.step(action)
-            if frame % 4 == 0:
-                self.agent.receive_response(state, reward, action, observation)
+            self.agent.receive_response(state, reward, action, observation, terminated or truncated)
             state = observation
             episode_reward += reward
             self.rewards.append(reward)

@@ -36,6 +36,9 @@ class DQN_agent():
         state = state.to(self.device)
         return state
     
+    def value(self,state):
+        return self.ValueNetWork(state)
+
     def get_action(self, state,epsilon):
         # print(f"state: {state}")
         # assert(state.dtype == torch.float32 and state.shape == (1,84,84))
@@ -51,7 +54,7 @@ class DQN_agent():
             with torch.no_grad():
                 # state = state.repeat(32,1,1,1)
                 output = self.ValueNetWork(state).detach()
-                action = output.argmax(dim=1)
+                action = output.argmax(dim=1)[0]
                 del output
                 # torch.cuda.empty_cache()
         return action
@@ -59,10 +62,11 @@ class DQN_agent():
     def receive_response(self, state
                          ,reward
                          ,action
-                         ,next_state):
+                         ,next_state,
+                         terminated : bool):
         # assert( state.shape == (1,84,84))
         # assert( next_state.shape == (1,84,84))
-        self.replay_buffer.add(state, action, reward, next_state)
+        self.replay_buffer.add(state, action, reward, next_state,terminated)
         self.train()
 
     def print_model(self):
@@ -74,7 +78,7 @@ class DQN_agent():
                 print("===")
         input("Press Enter to continue...")
 
-    def calculate_loss(self,states,rewards,actions,next_states):
+    def calculate_loss(self,states,rewards,actions,next_states,terminated):
         Q_values = self.ValueNetWork(states)
         values = Q_values[range(states.shape[0]),actions.long()]
         next_Q_values = self.ValueNetWork(next_states).max(-1)[0]
@@ -82,6 +86,7 @@ class DQN_agent():
         if self.log_level == 2:
             print(f'values: {values}\nexpected_Q_values: {expected_Q_values}')
             input("Press Enter to continue...")
+        expected_Q_values = torch.where(terminated, rewards,expected_Q_values)
         loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values.detach())
         return loss
         
@@ -89,10 +94,13 @@ class DQN_agent():
     def train(self):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return (0)
-        states, rewards, actions, next_states = self.replay_buffer.sample()
-        loss = self.calculate_loss(states, rewards, actions, next_states)
+        states, rewards, actions, next_states ,terminated= self.replay_buffer.sample()
+        loss = self.calculate_loss(states, rewards, actions, next_states,terminated)
         self.optimizer.zero_grad()
         loss.backward()
+        for param in self.ValueNetWork.parameters():
+            param.grad.data.clamp_(-1,1)
+
         self.optimizer.step()
         if self.log_level == 2:
             self.print_model()

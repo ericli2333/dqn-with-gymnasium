@@ -23,7 +23,7 @@ class replayBuffer(object):
         return state
 
         
-    def add(self, State, Action, Reward, NextState):
+    def add(self, State, Action, Reward, NextState ,Terminated):
         if type(State) == torch.Tensor:
             State = State.cpu().numpy()
         if type(NextState) == torch.Tensor:
@@ -35,7 +35,7 @@ class replayBuffer(object):
 
         if len(self.buffer) >= self.capacity:
             self.buffer.popleft()
-        self.buffer.append((State, int(Action), Reward, NextState))
+        self.buffer.append((State, int(Action), Reward, NextState,Terminated))
         self.curSize = len(self.buffer)
         
     def sample(self,batch_size = 32):
