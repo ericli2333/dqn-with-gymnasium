@@ -43,6 +43,7 @@ class replayBuffer(object):
         actions = []
         rewards = []
         next_states = []
+        terminated = []
         for i in range(batch_size):
             idx = random.randint(0, self.curSize - 1)
             state = self.get_state(self.buffer[idx][0])
@@ -51,12 +52,14 @@ class replayBuffer(object):
             actions.append(int(self.buffer[idx][1]))
             rewards.append(self.buffer[idx][2])
             next_states.append(next_state)
+            terminated.append(self.buffer[idx][4])
             
         states = torch.stack(states)
         actions = torch.tensor(actions, dtype=torch.int8).long().to(self.device)
         rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
         next_states = torch.stack(next_states)
-        return (states,actions,rewards,next_states)
+        terminated = torch.tensor(terminated, dtype=torch.bool).to(self.device) 
+        return (states,actions,rewards,next_states,terminated)
 
         
 if __name__ == '__main__':
