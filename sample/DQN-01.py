@@ -2,7 +2,8 @@
 环境配置
 """
 
-import gym, random, pickle, os.path, math, glob
+import gymnasium as gym
+import random, pickle, os.path, math, glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,9 +16,9 @@ import torch.nn.functional as F
 import torch.autograd as autograd
 import pdb
 
-from gym.wrappers import AtariPreprocessing, LazyFrames, FrameStack
+from gymnasium.wrappers import AtariPreprocessing, ResizeObservation,LazyFrames, FrameStack,GrayScaleObservation
 
-from IPython.display import clear_output
+# from IPython.display import clear_output
 from torch.utils.tensorboard.writer import SummaryWriter
 
 USE_CUDA = torch.cuda.is_available()
@@ -25,11 +26,13 @@ dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTens
 Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
 
 # Create and wrap the environment
-env = gym.make('PongNoFrameskip-v4')
-env = AtariPreprocessing(env,
-                         scale_obs=False,
-                         terminal_on_life_loss=True,
-                         )
+env = GrayScaleObservation(gym.make('PongNoFrameskip-v4'))
+env = ResizeObservation(env, 84)
+# env = AtariPreprocessing(env,
+#                          scale_obs=False,
+#                          terminal_on_life_loss=True,
+#                          )
+
 env = FrameStack(env, num_stack=4)
 n_actions = env.action_space.n 
 state_dim = env.observation_space.shape
@@ -142,12 +145,14 @@ class DQNAgent:
 
     def observe(self, lazyframe):
         # from Lazy frame to tensor
-        state =  torch.from_numpy(lazyframe.__array__()[None]/255).float()
+        # print(*lazyframe[0].__array__())
+        state =  torch.from_numpy(np.array(*lazyframe[0].__array__()[None])).float()
         if self.USE_CUDA:
             state = state.cuda()
         return state
 
     def value(self, state):
+        # print(state)
         q_values = self.DQN(state)
         return q_values
 
@@ -158,10 +163,10 @@ class DQNAgent:
         """
         if epsilon is None: epsilon = self.epsilon
 
-        q_values = self.value(state).cpu().detach().numpy()
         if random.random()<epsilon:
             aciton = random.randrange(self.action_space.n)
         else:
+            q_values = self.value(state).cpu().detach().numpy()
             aciton = q_values.argmax(1)[0]
         return aciton
 
@@ -239,11 +244,13 @@ class DQNAgent:
 # if __name__ == '__main__':
 
 # Training DQN in PongNoFrameskip-v4
-env = gym.make('PongNoFrameskip-v4')
-env = AtariPreprocessing(env,
-                         scale_obs=False,
-                         terminal_on_life_loss=True,
-                         )
+env = GrayScaleObservation(gym.make('PongNoFrameskip-v4'))
+env = ResizeObservation(env, 84)
+# env = AtariPreprocessing(env,
+#                          scale_obs=False,
+#                          terminal_on_life_loss=True,
+#                          )
+
 env = FrameStack(env, num_stack=4)
 
 gamma = 0.99
@@ -292,15 +299,24 @@ epsilon_by_frame = lambda frame_idx: epsilon_min + (epsilon_max - epsilon_min) *
 
 print(agent.USE_CUDA)
 
+first_frame = True
+
 for i in range(frames):
+    print(i)
     epsilon = epsilon_by_frame(i)
+    
     state_tensor = agent.observe(frame)
+    if first_frame:
+        first_frame = False
+        # state_tensor = state_tensor[0]
+        epsilon = 1
     action = agent.act(state_tensor, epsilon)
 
-    next_frame, reward, done ,_ = env.step(action)
+    next_frame, reward, terminated ,truncated , info= env.step(action)
 
     episode_reward += reward
-    agent.memory_buffer.push(frame, action, reward, next_frame, done)
+    if not first_frame:
+        agent.memory_buffer.push(frame, action, reward, next_frame, terminated)
     frame = next_frame
 
     loss = 0
@@ -317,10 +333,10 @@ for i in range(frames):
     if i % update_tar_interval == 0:
         agent.DQN_target.load_state_dict(agent.DQN.state_dict())
 
-    if done:
+    if terminated:
 
         frame = env.reset()
-
+        first_frame = True
         all_rewards.append(episode_reward)
         episode_reward = 0
         episode_num += 1
@@ -334,7 +350,7 @@ summary_writer.close()
 """
 
 def plot_training(frame_idx, rewards, losses):
-    clear_output(True)
+    # clear_output(True)
     plt.figure(figsize=(20,5))
     plt.subplot(131)
     plt.title('frame %s. reward: %s' % (frame_idx, np.mean(rewards[-10:])))

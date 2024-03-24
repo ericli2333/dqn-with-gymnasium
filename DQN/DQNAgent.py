@@ -24,7 +24,7 @@ class DQN_agent():
         self.log_level = log_level
         self.replay_buffer = rb.replayBuffer(capacity=self.buffer_size, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
-        self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.RMSprop(self.ValueNetWork.parameters(), lr=self.learning_rate)
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
             self.ValueNetWork.to(self.device)
@@ -47,10 +47,6 @@ class DQN_agent():
         else:
             if type(state) != torch.Tensor:
                 state = self.get_state(state)
-            # print(f"state_shape: {state.shape}")
-            # state = torch.tensor(state, dtype=torch.float32)
-            # print(f"state_shape: {state.shape}")
-            # input("Press Enter to continue...")
             with torch.no_grad():
                 # state = state.repeat(32,1,1,1)
                 output = self.ValueNetWork(state).detach()
@@ -86,7 +82,9 @@ class DQN_agent():
         if self.log_level == 2:
             print(f'values: {values}\nexpected_Q_values: {expected_Q_values}')
             input("Press Enter to continue...")
-        expected_Q_values = torch.where(terminated, rewards,expected_Q_values)
+        expected_Q_values = torch.where(terminated, 
+                                        rewards,
+                                        expected_Q_values)
         loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values.detach())
         return loss
         

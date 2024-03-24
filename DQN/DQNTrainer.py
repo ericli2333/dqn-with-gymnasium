@@ -16,10 +16,10 @@ class DQNTrainer(object):
                  learning_rate=1e-4, 
                  buffer_size=10000, 
                  epsilon = 0.9, 
-                 epsilon_lower_bound = 0.1,
+                 epsilon_lower_bound = 0.03,
                  epsilon_upper_bound = 0.9,
                  eps_decay = 200000,
-                 gamma = 0.95,
+                 gamma = 0.99,
                  log_level = 1,
                  ):
         self.epsilon_lower_bound = epsilon_lower_bound
