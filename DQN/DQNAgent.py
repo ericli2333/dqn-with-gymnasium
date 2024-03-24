@@ -85,7 +85,7 @@ class DQN_agent():
         expected_Q_values = torch.where(terminated, 
                                         rewards,
                                         expected_Q_values)
-        loss = torch.nn.functional.smooth_l1_loss(values, expected_Q_values.detach())
+        loss = torch.nn.functional.mse_loss(values, expected_Q_values.detach())
         return loss
         
     
