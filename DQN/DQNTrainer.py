@@ -36,7 +36,9 @@ class DQNTrainer(object):
         self.env = Env.DQNenv(env_name)
         self.n_actions = self.env.n_actions
         self.env.info()
-        self.agent = DQNAgent.DQN_agent(in_channels=in_channels,
+        self.agent = DQNAgent.DQN_agent(
+                                        writer=self.writer,
+                                        in_channels=in_channels,
                                         n_actions=self.n_actions,
                                         learning_rate=learning_rate,
                                         buffer_size=buffer_size, 
@@ -79,7 +81,7 @@ class DQNTrainer(object):
             state = observation
             episode_reward += reward
             self.rewards.append(reward)
-            loss = self.agent.train()
+            loss = self.agent.train(frame)
             self.losses.append(loss)
             if self.log_level == 1:
                 # self.writer.add_scalar('reward', reward, frame)

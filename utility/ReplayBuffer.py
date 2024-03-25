@@ -32,7 +32,7 @@ class replayBuffer(object):
             Action = Action.cpu().numpy()
         if type(Reward) == torch.Tensor:
             Reward = Reward.cpu().numpy()
-
+        assert(Reward <= 1 and Reward >= -1)
         record = (State, int(Action), Reward, NextState,Terminated)
 
         if len(self.buffer) < self.capacity:
@@ -42,7 +42,21 @@ class replayBuffer(object):
             self.index = (self.index + 1) % self.capacity
         self.curSize = len(self.buffer)
         
-    def sample(self,batch_size = 32):
+    def sample(self, batch_size=32):
+        '''
+        Randomly samples a batch of transitions from the replay buffer.
+
+        Parameters:
+            batch_size (int): The number of transitions to sample. Default is 32.
+
+        Returns:
+            tuple: A tuple containing the sampled batch of transitions, which includes:
+                - states (torch.Tensor): A tensor of shape (batch_size, state_size) containing the states.
+                - actions (torch.Tensor): A tensor of shape (batch_size,) containing the actions.
+                - rewards (torch.Tensor): A tensor of shape (batch_size,) containing the rewards.
+                - next_states (torch.Tensor): A tensor of shape (batch_size, state_size) containing the next states.
+                - terminated (torch.Tensor): A tensor of shape (batch_size,) containing the termination flags.
+        '''
         states = []
         actions = []
         rewards = []
@@ -60,10 +74,10 @@ class replayBuffer(object):
             
         states = torch.stack(states)
         actions = torch.tensor(actions, dtype=torch.int8).long().to(self.device)
-        rewards = torch.tensor(rewards, dtype=torch.float32).to(self.device)
+        rewards = torch.tensor(rewards, dtype=torch.int8).to(self.device)
         next_states = torch.stack(next_states)
         terminated = torch.tensor(terminated, dtype=torch.bool).to(self.device) 
-        return (states,actions,rewards,next_states,terminated)
+        return (states, actions, rewards, next_states, terminated)
 
         
 if __name__ == '__main__':

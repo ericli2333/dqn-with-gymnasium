@@ -6,6 +6,7 @@ import os
 
 class DQN_agent():
     def __init__(self,
+                 writer,
                  in_channels=4, 
                  n_actions = 0, 
                  learning_rate=1e-4, 
@@ -14,6 +15,7 @@ class DQN_agent():
                  gamma = 0.99,
                  log_level = 1,
                  ):
+        self.writer = writer
         self.in_channels = in_channels
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
         self.n_actions = n_actions
@@ -63,7 +65,7 @@ class DQN_agent():
         # assert( state.shape == (1,84,84))
         # assert( next_state.shape == (1,84,84))
         self.replay_buffer.add(state, action, reward, next_state,terminated)
-        self.train()
+        # self.train(frame)
 
     def print_model(self):
         for name, parms in self.ValueNetWork.named_parameters():	
@@ -74,30 +76,45 @@ class DQN_agent():
                 print("===")
         input("Press Enter to continue...")
 
-    def calculate_loss(self,states,rewards,actions,next_states,terminated):
+    def calculate_loss(self, states, rewards, actions, next_states, terminated, frame):
+        """
+        Calculates the loss for the DQN agent.
+
+        Args:
+            states (torch.Tensor): The current states.
+            rewards (torch.Tensor): The rewards received.
+            actions (torch.Tensor): The actions taken.
+            next_states (torch.Tensor): The next states.
+            terminated (torch.Tensor): A boolean tensor indicating whether the episode terminated.
+            frame (int): The current frame.
+
+        Returns:
+            torch.Tensor: The calculated loss.
+
+        """
         Q_values = self.ValueNetWork(states)
-        values = Q_values[range(states.shape[0]),actions.long()]
+        values = Q_values[range(states.shape[0]), actions.long()]
         next_Q_values = self.ValueNetWork(next_states).max(-1)[0]
         expected_Q_values = rewards + self.gamma * next_Q_values
+        self.writer.add_scalar('rewards', rewards.float().mean(), frame)
         if self.log_level == 2:
             print(f'values: {values}\nexpected_Q_values: {expected_Q_values}')
             input("Press Enter to continue...")
-        expected_Q_values = torch.where(terminated, 
-                                        rewards,
-                                        expected_Q_values)
+        expected_Q_values = torch.where(terminated, rewards, expected_Q_values)
         loss = torch.nn.functional.mse_loss(values, expected_Q_values.detach())
         return loss
         
     
-    def train(self):
+    def train(self,frame):
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return (0)
-        states, rewards, actions, next_states ,terminated= self.replay_buffer.sample()
-        loss = self.calculate_loss(states, rewards, actions, next_states,terminated)
+        states, actions ,rewards, next_states ,terminated= self.replay_buffer.sample()
+        loss = self.calculate_loss(states, rewards, actions, next_states,terminated,frame)
         self.optimizer.zero_grad()
         loss.backward()
-        for param in self.ValueNetWork.parameters():
-            param.grad.data.clamp_(-1,1)
+        # for param in self.ValueNetWork.parameters():
+        #     param.grad.data.clamp_(-1,1)
+        torch.nn.utils.clip_grad_norm_(self.ValueNetWork.parameters(), max_norm=20, norm_type=2)
 
         self.optimizer.step()
         if self.log_level == 2:
