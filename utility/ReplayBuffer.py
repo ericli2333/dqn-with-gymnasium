@@ -1,4 +1,3 @@
-from collections import deque, namedtuple
 import random
 import torch
 import numpy as np
@@ -65,10 +64,10 @@ class replayBuffer(object):
         for i in range(batch_size):
             idx = random.randint(0, self.curSize - 1)
             state = self.get_state(self.buffer[idx][0])
-            next_state = self.get_state(self.buffer[idx][3])
-            states.append(state)
             actions.append(int(self.buffer[idx][1]))
             rewards.append(self.buffer[idx][2])
+            next_state = self.get_state(self.buffer[idx][3])
+            states.append(state)
             next_states.append(next_state)
             terminated.append(self.buffer[idx][4])
             

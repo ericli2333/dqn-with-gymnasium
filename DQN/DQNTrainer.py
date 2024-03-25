@@ -14,7 +14,7 @@ class DQNTrainer(object):
                  env_name, 
                  in_channels=4, 
                  learning_rate=1e-4, 
-                 buffer_size=10000, 
+                 buffer_capacity=10000, 
                  epsilon = 0.9, 
                  epsilon_lower_bound = 0.03,
                  epsilon_upper_bound = 0.9,
@@ -32,7 +32,7 @@ class DQNTrainer(object):
         formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
         self.log_level = log_level
         if log_level == 1:
-            self.writer = SummaryWriter(log_dir=f'logs/DQN/{formatted_time}-env:{env_name}-lr:{learning_rate}-bs:{buffer_size}-eps:{epsilon}-gamma:{gamma}')
+            self.writer = SummaryWriter(log_dir=f'logs/DQN/{formatted_time}-env:{env_name}-lr:{learning_rate}-bs:{buffer_capacity}-eps:{epsilon}-gamma:{gamma}')
         self.env = Env.DQNenv(env_name)
         self.n_actions = self.env.n_actions
         self.env.info()
@@ -41,7 +41,7 @@ class DQNTrainer(object):
                                         in_channels=in_channels,
                                         n_actions=self.n_actions,
                                         learning_rate=learning_rate,
-                                        buffer_size=buffer_size, 
+                                        buffer_capacity=buffer_capacity, 
                                         epsilon = epsilon,
                                         gamma = gamma,
                                         log_level=log_level,
@@ -85,6 +85,8 @@ class DQNTrainer(object):
             self.losses.append(loss)
             if self.log_level == 1:
                 # self.writer.add_scalar('reward', reward, frame)
+                self.writer.add_scalar('epsilon',eps, frame)
+                self.writer.add_scalar('batch current size',self.agent.replay_buffer.curSize,frame)
                 self.writer.add_scalar('loss', loss, frame)
             if self.log_level == 2:
                 print(f'frame: {frame}, reward: {reward}')

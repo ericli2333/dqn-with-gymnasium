@@ -5,7 +5,7 @@ import DQN.DQNTrainer as DQNTrainer
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--env_name", type=str, default='PongNoFrameskip-v4', help="Name of the environment")
-    parser.add_argument("--buffer_size", type=int, default=32, help="Size of the replay buffer")
+    parser.add_argument("--buffer_capacity", type=int, default=100000, help="Size of the replay buffer")
     parser.add_argument("--in_channels", type=int, default=4, help="Number of input channels")
     parser.add_argument("--learning_rate", type=float, default=1e-5, help="Learning rate")
     parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     trainer = DQNTrainer.DQNTrainer(env_name=args.env_name,
-                                    buffer_size=args.buffer_size,
+                                    buffer_capacity=args.buffer_capacity,
                                     in_channels=args.in_channels,
                                     learning_rate=args.learning_rate,
                                     gamma=args.gamma,

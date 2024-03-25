@@ -2,6 +2,7 @@ import utility.ReplayBuffer as rb
 from utility import QApproximation
 import torch
 import numpy as np
+import random
 import os
 
 class DQN_agent():
@@ -10,7 +11,7 @@ class DQN_agent():
                  in_channels=4, 
                  n_actions = 0, 
                  learning_rate=1e-4, 
-                 buffer_size=100000, 
+                 buffer_capacity=100000, 
                  epsilon = 0.9,
                  gamma = 0.99,
                  log_level = 1,
@@ -20,11 +21,11 @@ class DQN_agent():
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
         self.n_actions = n_actions
         self.learning_rate = learning_rate
-        self.buffer_size = buffer_size
+        self.buffer_capacity = buffer_capacity
         self.epsilon = epsilon
         self.gamma = gamma
         self.log_level = log_level
-        self.replay_buffer = rb.replayBuffer(capacity=self.buffer_size, batch_size=32)
+        self.replay_buffer = rb.replayBuffer(capacity=self.buffer_capacity, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
         self.optimizer = torch.optim.RMSprop(self.ValueNetWork.parameters(), lr=self.learning_rate)
         if torch.cuda.is_available():
@@ -45,14 +46,14 @@ class DQN_agent():
         # print(f"state: {state}")
         # assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         if torch.rand(1) > epsilon :
-            action = torch.randint(0, self.n_actions, (1,))
+            action = random.randrange(self.n_actions)
         else:
             if type(state) != torch.Tensor:
                 state = self.get_state(state)
             with torch.no_grad():
                 # state = state.repeat(32,1,1,1)
-                output = self.ValueNetWork(state).detach()
-                action = output.argmax(dim=1)[0]
+                output = self.ValueNetWork(state).cpu().detach().numpy()
+                action = output.argmax(1)[0]
                 del output
                 # torch.cuda.empty_cache()
         return action
@@ -76,14 +77,14 @@ class DQN_agent():
                 print("===")
         input("Press Enter to continue...")
 
-    def calculate_loss(self, states, rewards, actions, next_states, terminated, frame):
+    def calculate_loss(self, states, actions, rewards, next_states, terminated, frame):
         """
         Calculates the loss for the DQN agent.
 
         Args:
             states (torch.Tensor): The current states.
-            rewards (torch.Tensor): The rewards received.
             actions (torch.Tensor): The actions taken.
+            rewards (torch.Tensor): The rewards received.
             next_states (torch.Tensor): The next states.
             terminated (torch.Tensor): A boolean tensor indicating whether the episode terminated.
             frame (int): The current frame.
@@ -96,7 +97,8 @@ class DQN_agent():
         values = Q_values[range(states.shape[0]), actions.long()]
         next_Q_values = self.ValueNetWork(next_states).max(-1)[0]
         expected_Q_values = rewards + self.gamma * next_Q_values
-        self.writer.add_scalar('rewards', rewards.float().mean(), frame)
+        self.writer.add_scalar('values', values.float().mean(), frame)
+        # self.writer.add_scalar('rewards', rewards.float().mean(), frame)
         if self.log_level == 2:
             print(f'values: {values}\nexpected_Q_values: {expected_Q_values}')
             input("Press Enter to continue...")
@@ -109,7 +111,12 @@ class DQN_agent():
         if self.replay_buffer.curSize < self.replay_buffer.batch_size:
             return (0)
         states, actions ,rewards, next_states ,terminated= self.replay_buffer.sample()
-        loss = self.calculate_loss(states, rewards, actions, next_states,terminated,frame)
+        loss = self.calculate_loss(states, 
+                                   actions=actions, 
+                                   rewards=rewards, 
+                                   next_states=next_states,
+                                   terminated=terminated,
+                                   frame=frame)
         self.optimizer.zero_grad()
         loss.backward()
         # for param in self.ValueNetWork.parameters():

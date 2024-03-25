@@ -122,10 +122,13 @@ class DQNAgent:
     def observe(self, lazyframe):
         # from Lazy frame to tensor
         # print(*lazyframe[0].__array__())
-        print(*lazyframe[0].shape)
-        state =  torch.from_numpy(np.array(*lazyframe[0].__array__()[None])).float()
-        print(state.shape)
-        input("pause")
+        # print(lazyframe[0].shape)
+        if lazyframe[0].shape == (4,84,84):
+            state =  torch.from_numpy(np.array(lazyframe[0].__array__()[None])).float()
+        else:
+            state = torch.from_numpy(np.array(lazyframe)).float()
+        # print(state.shape)
+        # input("pause")
         if self.USE_CUDA:
             state = state.cuda()
         # if state.shape == (84,84):
@@ -137,6 +140,7 @@ class DQNAgent:
 
     def value(self, state):
         # print(state)
+        assert(state.shape == (4,84,84))
         q_values = self.DQN(state)
         return q_values
 
@@ -150,6 +154,7 @@ class DQNAgent:
         if random.random()<epsilon:
             aciton = random.randrange(self.action_space.n)
         else:
+            assert(state.shape == (4,84,84))
             q_values = self.value(state).cpu().detach().numpy()
             aciton = q_values.argmax(1)[0]
         return aciton
@@ -297,8 +302,9 @@ if __name__ == '__main__':
         action = agent.act(state_tensor, epsilon)
 
         next_frame, reward, terminated ,truncated , info= env.step(action)
-        print(*next_frame.shape)
-        input("Pause...")
+        assert(next_frame.shape == (4,84,84))
+        # print(*next_frame.shape)
+        # input("Pause...")
 
         episode_reward += reward
         if not first_frame:
