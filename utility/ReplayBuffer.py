@@ -7,7 +7,7 @@ class replayBuffer(object):
                 capacity: int = 100000,
                 batch_size:int = 32, 
                 ) -> None:
-        self.buffer = deque(maxlen=capacity)
+        self.buffer = []
         self.capacity = capacity
         self.curSize = 0
         self.index = 0
@@ -33,9 +33,13 @@ class replayBuffer(object):
         if type(Reward) == torch.Tensor:
             Reward = Reward.cpu().numpy()
 
-        if len(self.buffer) >= self.capacity:
-            self.buffer.popleft()
-        self.buffer.append((State, int(Action), Reward, NextState,Terminated))
+        record = (State, int(Action), Reward, NextState,Terminated)
+
+        if len(self.buffer) < self.capacity:
+            self.buffer.append(record)
+        else:
+            self.buffer[self.index] = record
+            self.index = (self.index + 1) % self.capacity
         self.curSize = len(self.buffer)
         
     def sample(self,batch_size = 32):
