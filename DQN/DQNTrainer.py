@@ -76,6 +76,7 @@ class DQNTrainer(object):
                 episode += 1
                 episode_reward = 0
             actions = self.agent.get_action(state, eps)
+            assert(type(actions) == int)
             action_list.append(actions)
             # action = actions
             observation, reward, terminated, truncated, info = self.env.env.step(actions)
@@ -91,8 +92,7 @@ class DQNTrainer(object):
                 self.writer.add_scalar('batch current size',self.agent.replay_buffer.curSize,frame)
                 self.writer.add_scalar('loss', loss, frame)
                 if frame % 1000 == 0:
-                    for item in action_list:
-                        self.writer.add_histogram('action', item, frame)
+                    self.writer.add_histogram('action', np.array(action_list,dtype=int), frame // 1000)
                     action_list = []
             if self.log_level == 2:
                 print(f'frame: {frame}, reward: {reward}')

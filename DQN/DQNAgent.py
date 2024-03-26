@@ -28,7 +28,7 @@ class DQN_agent():
         self.replay_buffer = rb.replayBuffer(capacity=self.buffer_capacity, batch_size=32)
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
         for param in self.ValueNetWork.parameters():
-            param.data.fill_(0)
+            param.data.uniform_(1e-7, 3e-7)
         self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -48,14 +48,14 @@ class DQN_agent():
         # print(f"state: {state}")
         # assert(state.dtype == torch.float32 and state.shape == (1,84,84))
         if torch.rand(1) > epsilon :
-            action = random.randrange(self.n_actions)
+            action = int(random.randrange(self.n_actions))
         else:
             if type(state) != torch.Tensor:
                 state = self.get_state(state)
             with torch.no_grad():
                 # state = state.repeat(32,1,1,1)
                 output = self.ValueNetWork(state).cpu().detach().numpy()
-                action = output.argmax(1)[0]
+                action = int(output.argmax(1)[0])
                 del output
                 # torch.cuda.empty_cache()
         return action
@@ -128,6 +128,12 @@ class DQN_agent():
         self.optimizer.step()
         if self.log_level == 2:
             self.print_model()
+        if self.log_level == 1:
+            self.writer.add_scalar('learning rate',self.optimizer.param_groups[0]['lr'],frame)
+            if frame % 1000 == 0:
+                for name, param in self.ValueNetWork.named_parameters():
+                    self.writer.add_histogram(tag=name+'_grad', values=param.grad, global_step=frame // 1000)
+                    self.writer.add_histogram(tag=name+'_data', values=param.data, global_step=frame // 1000)
         # del Q_values, next_Q_values, expected_Q_values, values
         return loss
         
