@@ -1,5 +1,5 @@
-import gymnasium as gym
-from gymnasium.wrappers import GrayScaleObservation, ResizeObservation,frame_stack
+import gym
+from gym.wrappers import GrayScaleObservation, ResizeObservation,frame_stack
 import numpy as np
 import matplotlib.pyplot as plt
 import torch

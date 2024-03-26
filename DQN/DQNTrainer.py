@@ -54,19 +54,26 @@ class DQNTrainer(object):
         return self.epsilon_lower_bound + (self.epsilon_upper_bound - self.epsilon_lower_bound) * math.exp(
             -1. * frame_idx / self.eps_decay)
 
+    def get_state(self,observation):
+        state = np.array(observation.__array__()[None]/255, dtype=np.float32)
+        state = torch.from_numpy(state)
+        # state = state.unsqueeze(0)
+        state = state.squeeze(-1).squeeze(0)
+        state = state.to(self.device)
+        return state
+
     def train(self, max_frame=1000):
         print("Start training...")
         state = self.env.env.reset()
         state = state[0]
         action_list = []
-        terminated = True
-        truncated = True
+        done = True
         episode_reward = 0
         episode = 0
         for frame in range(max_frame):
             eps = self.calculate_epsilon(frame)
             print(f'frame: {frame}')
-            if terminated or truncated:
+            if done:
                 state = self.env.env.reset()
                 eps = 0
                 # state = self.get_state(state[0])
@@ -79,9 +86,15 @@ class DQNTrainer(object):
             assert(type(actions) == int)
             action_list.append(actions)
             # action = actions
-            observation, reward, terminated, truncated, info = self.env.env.step(actions)
-            self.agent.receive_response(state, reward, actions, observation, terminated or truncated)
-            state = observation
+            st = self.env.env.step(actions)
+            next_frame = st[0]
+            reward = st[1]
+            done = st[2]
+            # next_frame, reward, done, _ = st
+            state = self.get_state(next_frame)
+            
+            self.agent.receive_response(state, reward, actions, state, done)
+            # state = observation
             episode_reward += reward
             self.rewards.append(reward)
             loss = self.agent.train(frame)
