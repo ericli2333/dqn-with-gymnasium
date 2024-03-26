@@ -58,6 +58,7 @@ class DQNTrainer(object):
         print("Start training...")
         state = self.env.env.reset()
         state = state[0]
+        action_list = []
         terminated = True
         truncated = True
         episode_reward = 0
@@ -75,6 +76,7 @@ class DQNTrainer(object):
                 episode += 1
                 episode_reward = 0
             actions = self.agent.get_action(state, eps)
+            action_list.append(actions)
             # action = actions
             observation, reward, terminated, truncated, info = self.env.env.step(actions)
             self.agent.receive_response(state, reward, actions, observation, terminated or truncated)
@@ -88,6 +90,10 @@ class DQNTrainer(object):
                 self.writer.add_scalar('epsilon',eps, frame)
                 self.writer.add_scalar('batch current size',self.agent.replay_buffer.curSize,frame)
                 self.writer.add_scalar('loss', loss, frame)
+                if frame % 1000 == 0:
+                    for item in action_list:
+                        self.writer.add_histogram('action', item, frame)
+                    action_list = []
             if self.log_level == 2:
                 print(f'frame: {frame}, reward: {reward}')
                 print(f'frame: {frame}, loss: {loss}')
