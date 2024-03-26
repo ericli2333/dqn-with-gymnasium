@@ -29,7 +29,7 @@ class DQN_agent():
         self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
         for param in self.ValueNetWork.parameters():
             param.data.uniform_(1e-7, 3e-7)
-        self.optimizer = torch.optim.Adam(self.ValueNetWork.parameters(), lr=self.learning_rate)
+        self.optimizer = torch.optim.RMSprop(self.ValueNetWork.parameters(), alpha=0.95,eps=1e-3)
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
             self.ValueNetWork.to(self.device)

@@ -110,6 +110,7 @@ class DQNTrainer(object):
                 self.writer.add_scalar('epsilon',eps, frame)
                 self.writer.add_scalar('batch current size',self.agent.replay_buffer.curSize,frame)
                 self.writer.add_scalar('loss', loss, frame)
+                self.writer.add_scalar("Mean Reward", np.mean(self.rewards[-10:]), frame)
                 if frame % 1000 == 0:
                     self.writer.add_histogram('action', np.array(action_list,dtype=int), frame // 1000)
                     action_list = []
