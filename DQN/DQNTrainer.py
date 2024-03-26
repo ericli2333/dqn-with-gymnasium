@@ -91,9 +91,15 @@ class DQNTrainer(object):
             reward = st[1]
             done = st[2]
             # next_frame, reward, done, _ = st
-            state = self.get_state(next_frame)
+            next_frame = self.get_state(next_frame)
+            if type(state) != torch.Tensor:
+                state = self.get_state(state)
+            # if torch.equal(state, next_frame):
+            #     print('equal')
+            #     input()
             
-            self.agent.receive_response(state, reward, actions, state, done)
+            self.agent.receive_response(state, reward, actions, next_frame, done)
+            state = next_frame
             # state = observation
             episode_reward += reward
             self.rewards.append(reward)

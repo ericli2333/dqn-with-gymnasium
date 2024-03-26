@@ -1,5 +1,5 @@
 import gym
-from gym.wrappers import GrayScaleObservation, ResizeObservation,frame_stack
+from gym.wrappers import GrayScaleObservation, ResizeObservation,frame_stack,AtariPreprocessing
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -9,7 +9,7 @@ class DQNenv(object):
     def __init__(self,name) -> None:
         self.name = name
         self.env = GrayScaleObservation(gym.make(name))
-        self.env = ResizeObservation(self.env, 84)
+        self.env = AtariPreprocessing(self.env, scale_obs=False, terminal_on_life_loss=True)
         self.env = frame_stack.FrameStack(self.env, num_stack=4)
         self.n_actions = self.env.action_space.n
         # self.state_dim = self.env.observation_space.shape

@@ -100,8 +100,20 @@ class DQN_agent():
         """
         Q_values = self.ValueNetWork(states)
         values = Q_values[range(states.shape[0]), actions.long()]
-        next_Q_values = self.ValueNetWork(next_states).max(-1)[0]
+        next_Q_values_output = self.ValueNetWork(next_states)
+        next_Q_values = next_Q_values_output.max(-1)[0]
         expected_Q_values = rewards + self.gamma * next_Q_values
+        # print(f'Q_values:\n{Q_values}\n\
+        #         actions:\n{actions}\n\
+        #         values:\n{values}\n\
+        #         rewards:\n{rewards}\n\
+        #         next_Q_Output:\n{next_Q_values_output}\n\
+        #         next_Q_values:\n{next_Q_values}\n\
+        #         expected_Q_values:\n{expected_Q_values}\n\
+        #         rewards:\n{rewards}\n\
+        #         terminated:\n{terminated}')
+        # print(f'is equal:{states[0] == states[1]}\n0-2:\n{states[0] == states[2]}')
+        # input()
         self.writer.add_scalar('values', values.float().mean(), frame)
         # self.writer.add_scalar('rewards', rewards.float().mean(), frame)
         if self.log_level == 2:

@@ -63,13 +63,25 @@ class replayBuffer(object):
         terminated = []
         for i in range(batch_size):
             idx = random.randint(0, self.curSize - 1)
-            state = self.get_state(self.buffer[idx][0])
-            actions.append(int(self.buffer[idx][1]))
-            rewards.append(self.buffer[idx][2])
-            next_state = self.get_state(self.buffer[idx][3])
+            data = self.buffer[idx]
+            state,action,reward,next_state,done = data
+            state = self.get_state(state)
+            if state.shape == (4,84,84,1):
+                state = state.squeeze(3)
+            if next_state.shape == (4,84,84,1):
+                next_state = next_state.squeeze(3) 
+            assert(state.shape == (4,84,84))
+            action = int(action)
+            next_state = self.get_state(next_state)
+            actions.append(action)
+            rewards.append(reward)
             states.append(state)
             next_states.append(next_state)
-            terminated.append(self.buffer[idx][4])
+            terminated.append(done)
+            # state = self.get_state(self.buffer[idx][0])
+            # actions.append(int(self.buffer[idx][1]))
+            # rewards.append(self.buffer[idx][2])
+            # next_state = self.get_state(self.buffer[idx][3])
             
         states = torch.stack(states)
         actions = torch.tensor(actions, dtype=torch.int8).long().to(self.device)

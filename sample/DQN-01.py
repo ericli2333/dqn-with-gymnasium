@@ -140,7 +140,7 @@ class DQNAgent:
 
     def value(self, state):
         # print(state)
-        assert(state.shape == (4,84,84))
+        # assert(state.shape == (4,84,84))
         q_values = self.DQN(state)
         return q_values
 
@@ -149,12 +149,16 @@ class DQNAgent:
         sample actions with epsilon-greedy policy
         recap: with p = epsilon pick random action, else pick action with highest Q(s,a)
         """
+        # print(f'state:{state.shape} {type(state)}')
+        # input()
         if epsilon is None: epsilon = self.epsilon
 
         if random.random()<epsilon:
             aciton = random.randrange(self.action_space.n)
         else:
             assert(state.shape == (4,84,84))
+            state = state.unsqueeze(0)
+            print(state.shape)
             q_values = self.value(state).cpu().detach().numpy()
             aciton = q_values.argmax(1)[0]
         return aciton
@@ -171,6 +175,8 @@ class DQNAgent:
             is_done = is_done.cuda()
 
         # get q-values for all actions in current states
+        # print(f'state:{states.shape}')
+        # input()
         predicted_qvalues = self.DQN(states)
 
         # select q-values for chosen actions
@@ -209,7 +215,7 @@ class DQNAgent:
             rewards.append(reward)
             next_states.append(self.observe(next_frame))
             dones.append(done)
-        return torch.cat(states), actions, rewards, torch.cat(next_states), dones
+        return torch.stack(states), actions, rewards, torch.stack(next_states), dones
 
     def learn_from_experience(self, batch_size):
         if self.memory_buffer.size() > batch_size:
@@ -298,6 +304,7 @@ if __name__ == '__main__':
         if first_frame:
             first_frame = False
             # state_tensor = state_tensor[0]
+            state_tensor = state_tensor.squeeze(0)
             epsilon = 1
         action = agent.act(state_tensor, epsilon)
 
@@ -308,6 +315,12 @@ if __name__ == '__main__':
 
         episode_reward += reward
         if not first_frame:
+            if agent.observe(frame).shape == (4,84,84):
+                tmp = agent.observe(frame)
+                tmp.squeeze(0)
+                frame = tmp.cpu().numpy()
+                del tmp
+            # assert(agent.observe(frame).shape == (4,84,84))
             agent.memory_buffer.push(frame, action, reward, next_frame, terminated)
         frame = next_frame
 
