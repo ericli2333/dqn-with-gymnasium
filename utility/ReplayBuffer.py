@@ -1,102 +1,81 @@
 import random
 import torch
-import numpy as np
-class replayBuffer(object):
-    def __init__(self,
-                capacity: int = 100000,
-                batch_size:int = 32, 
-                ) -> None:
+
+
+class ReplayBuffer:
+    """
+    A replay buffer class for storing and sampling experiences for reinforcement learning.
+
+    Args:
+        size (int): The maximum size of the replay buffer.
+
+    Attributes:
+        size (int): The maximum size of the replay buffer.
+        buffer (list): A list to store the experiences.
+        cur (int): The current index in the buffer.
+        device (torch.device): The device to use for tensor operations.
+
+    Methods:
+        __len__(): Returns the number of experiences in the buffer.
+        transform(lazy_frame): Transforms a lazy frame into a tensor.
+        push(state, action, reward, next_state, done): Adds an experience to the buffer.
+        sample(batch_size): Samples a batch of experiences from the buffer.
+
+    """
+
+    def __init__(self, size):
+        self.size = size
         self.buffer = []
-        self.capacity = capacity
-        self.curSize = 0
-        self.index = 0
-        self.batch_size = batch_size
+        self.cur = 0
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def get_state(self,observation):
-        observation = list(observation)
-        state = np.array(observation, dtype=np.float32)
-        state = torch.from_numpy(state)
-        # state = state.unsqueeze(0)
-        state = state.to(self.device)
-        return state
+    def __len__(self):
+        return len(self.buffer)
 
-        
-    def add(self, State, Action, Reward, NextState ,Terminated):
-        if type(State) == torch.Tensor:
-            State = State.cpu().numpy()
-        if type(NextState) == torch.Tensor:
-            NextState = NextState.cpu().numpy()
-        if type(Action) == torch.Tensor:
-            Action = Action.cpu().numpy()
-        if type(Reward) == torch.Tensor:
-            Reward = Reward.cpu().numpy()
-        assert(Reward <= 1 and Reward >= -1)
-        record = (State, int(Action), Reward, NextState,Terminated)
+    def transform(self, lazy_frame):
+        state = torch.from_numpy(lazy_frame.__array__()[None] / 255).float()
+        return state.to(self.device)
 
-        if len(self.buffer) < self.capacity:
-            self.buffer.append(record)
+    def push(self, state, action, reward, next_state, done):
+        """
+        Adds an experience to the replay buffer.
+
+        Args:
+            state (numpy.ndarray): The current state.
+            action (int): The action taken.
+            reward (float): The reward received.
+            next_state (numpy.ndarray): The next state.
+            done (bool): Whether the episode is done.
+
+        """
+        if len(self.buffer) == self.size:
+            self.buffer[self.cur] = (state, action, reward, next_state, done)
         else:
-            self.buffer[self.index] = record
-            self.index = (self.index + 1) % self.capacity
-        self.curSize = len(self.buffer)
-        
-    def sample(self, batch_size=32):
-        '''
-        Randomly samples a batch of transitions from the replay buffer.
+            self.buffer.append((state, action, reward, next_state, done))
+        self.cur = (self.cur + 1) % self.size
 
-        Parameters:
-            batch_size (int): The number of transitions to sample. Default is 32.
+    def sample(self, batch_size):
+        """
+        Samples a batch of experiences from the replay buffer.
+
+        Args:
+            batch_size (int): The size of the batch to sample.
 
         Returns:
-            tuple: A tuple containing the sampled batch of transitions, which includes:
-                - states (torch.Tensor): A tensor of shape (batch_size, state_size) containing the states.
-                - actions (torch.Tensor): A tensor of shape (batch_size,) containing the actions.
-                - rewards (torch.Tensor): A tensor of shape (batch_size,) containing the rewards.
-                - next_states (torch.Tensor): A tensor of shape (batch_size, state_size) containing the next states.
-                - terminated (torch.Tensor): A tensor of shape (batch_size,) containing the termination flags.
-        '''
-        states = []
-        actions = []
-        rewards = []
-        next_states = []
-        terminated = []
-        for i in range(batch_size):
-            idx = random.randint(0, self.curSize - 1)
-            data = self.buffer[idx]
-            state,action,reward,next_state,done = data
-            state = self.get_state(state)
-            if state.shape == (4,84,84,1):
-                state = state.squeeze(3)
-            if next_state.shape == (4,84,84,1):
-                next_state = next_state.squeeze(3) 
-            assert(state.shape == (4,84,84))
-            action = int(action)
-            next_state = self.get_state(next_state)
+            tuple: A tuple containing the batch of states, actions, rewards, next states, and dones.
+
+        """
+        states, actions, rewards, next_states, dones = [], [], [], [], []
+        for _ in range(batch_size):
+            frame, action, reward, next_frame, done = self.buffer[random.randint(0, len(self.buffer) - 1)]
+            state = self.transform(frame)
+            next_state = self.transform(next_frame)
+            state = torch.squeeze(state, 0)
+            next_state = torch.squeeze(next_state, 0)
+            states.append(state)
             actions.append(action)
             rewards.append(reward)
-            states.append(state)
             next_states.append(next_state)
-            terminated.append(done)
-            # state = self.get_state(self.buffer[idx][0])
-            # actions.append(int(self.buffer[idx][1]))
-            # rewards.append(self.buffer[idx][2])
-            # next_state = self.get_state(self.buffer[idx][3])
-            
-        states = torch.stack(states)
-        actions = torch.tensor(actions, dtype=torch.int8).long().to(self.device)
-        rewards = torch.tensor(rewards, dtype=torch.int8).to(self.device)
-        next_states = torch.stack(next_states)
-        terminated = torch.tensor(terminated, dtype=torch.bool).to(self.device) 
-        return (states, actions, rewards, next_states, terminated)
-
-        
-if __name__ == '__main__':
-    RB = replayBuffer(100000,4)
-    for i in range(100):
-        RB.add(i, i, i, i)
-        
-    for _ in range(30):
-        batch = RB.sample()
-        print(batch)
-    
+            dones.append(done)
+        return (torch.stack(states).to(self.device), torch.tensor(actions).to(self.device), torch.tensor(rewards).to(self.device),
+                torch.stack(next_states).to(self.device), torch.tensor(dones).to(self.device))

@@ -1,154 +1,118 @@
-import utility.ReplayBuffer as rb
-from utility import QApproximation
+from utility.NetWork import NetWork
+from utility.ReplayBuffer import ReplayBuffer
 import torch
+import torch.optim as optim
+import torch.nn.functional as F
 import numpy as np
 import random
-import os
 
-class DQN_agent():
-    def __init__(self,
-                 writer,
-                 in_channels=4, 
-                 n_actions = 0, 
-                 learning_rate=3e-4, 
-                 buffer_capacity=100000, 
-                 epsilon = 0.9,
-                 gamma = 0.99,
-                 log_level = 1,
-                 ):
-        self.writer = writer
-        self.in_channels = in_channels
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 定义设备
-        self.n_actions = n_actions
-        self.learning_rate = learning_rate
-        self.buffer_capacity = buffer_capacity
-        self.epsilon = epsilon
+
+class Agent:
+    """
+    The Agent class represents a Deep Q-Network (DQN) agent for reinforcement learning.
+
+    Args:
+        in_channels (int): Number of input channels.
+        num_actions (int): Number of possible actions.
+        c (float): Exploration factor for epsilon-greedy action selection.
+        lr (float): Learning rate for the optimizer.
+        alpha (float): RMSprop optimizer alpha value.
+        gamma (float): Discount factor for future rewards.
+        epsilon (float): Exploration rate for epsilon-greedy action selection.
+        replay_size (int): Size of the replay buffer.
+
+    Attributes:
+        num_actions (int): Number of possible actions.
+        replay (ReplayBuffer): Replay buffer for storing and sampling experiences.
+        device (torch.device): Device (CPU or GPU) for running computations.
+        c (float): Exploration factor for epsilon-greedy action selection.
+        gamma (float): Discount factor for future rewards.
+        q_network (DQN): Q-network for estimating action values.
+        target_network (DQN): Target network for estimating target action values.
+        optimizer (torch.optim.RMSprop): Optimizer for updating the Q-network.
+
+    Methods:
+        greedy(state, epsilon): Selects an action using epsilon-greedy policy.
+        calculate_loss(states, actions, rewards, next_states, dones): Calculates the loss for a batch of experiences.
+        reset(): Resets the target network to match the Q-network.
+        learn(batch_size): Performs a single learning step using a batch of experiences.
+    """
+
+    def __init__(self, in_channels, num_actions, reset_network_interval, lr, alpha, gamma, epsilon, replay_size):
+        self.num_actions = num_actions
+        self.replay_buffer = ReplayBuffer(replay_size)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(self.device)
+        self.reset_network_interval = reset_network_interval
         self.gamma = gamma
-        self.log_level = log_level
-        self.replay_buffer = rb.replayBuffer(capacity=self.buffer_capacity, batch_size=32)
-        self.ValueNetWork = QApproximation.NetWork(in_channels=self.in_channels, action_num=self.n_actions)
-        for param in self.ValueNetWork.parameters():
-            param.data.uniform_(1e-7, 3e-7)
-        self.optimizer = torch.optim.RMSprop(self.ValueNetWork.parameters(), alpha=0.95,eps=1e-3)
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda")
-            self.ValueNetWork.to(self.device)
+        self.q_network = NetWork(in_channels, num_actions).to(self.device)
+        self.target_network = NetWork(in_channels, num_actions).to(self.device)
+        self.target_network.load_state_dict(self.q_network.state_dict())
+        # self.optimizer = optim.RMSprop(self.q_network.parameters(), lr=lr, eps=epsilon, alpha=alpha)
+        self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr, eps=epsilon)
 
-    def get_state(self,observation):
-        state = np.array(observation.__array__()[None]/255, dtype=np.float32)
-        state = torch.from_numpy(state)
-        # state = state.unsqueeze(0)
-        state = state.to(self.device)
-        return state
-    
-    def value(self,state):
-        return self.ValueNetWork(state)
-
-    def get_action(self, state,epsilon):
-        # print(f"state: {state.shape} type: {type(state)}")
-        # assert(state.dtype == torch.float32 and state.shape == (1,84,84))
-        if torch.rand(1) > epsilon :
-            action = int(random.randrange(self.n_actions))
-        else:
-            # if type(state) != torch.Tensor:
-                # state = self.get_state(state)
-            with torch.no_grad():
-                # state = state.repeat(32,1,1,1)
-                state = state.unsqueeze(0)
-                # print(f"state: \n{state.shape}, {state.dtype}")
-                # input()
-                output = self.ValueNetWork(state).cpu().detach().numpy()
-                action = int(output.argmax(1)[0])
-                del output
-                # torch.cuda.empty_cache()
-        return action
-    
-    def receive_response(self, state
-                         ,reward
-                         ,action
-                         ,next_state,
-                         terminated : bool):
-        # assert( state.shape == (1,84,84))
-        # assert( next_state.shape == (1,84,84))
-        self.replay_buffer.add(state, action, reward, next_state,terminated)
-        # self.train(frame)
-
-    def print_model(self):
-        for name, parms in self.ValueNetWork.named_parameters():	
-                print('-->name:', name)
-                print('-->para:', parms)
-                print('-->grad_requirs:',parms.requires_grad)
-                print('-->grad_value:',parms.grad)
-                print("===")
-        input("Press Enter to continue...")
-
-    def calculate_loss(self, states, actions, rewards, next_states, terminated, frame):
+    def get_action(self, state, epsilon):
         """
-        Calculates the loss for the DQN agent.
+        Selects an action using epsilon-greedy policy.
 
         Args:
-            states (torch.Tensor): The current states.
-            actions (torch.Tensor): The actions taken.
-            rewards (torch.Tensor): The rewards received.
-            next_states (torch.Tensor): The next states.
-            terminated (torch.Tensor): A boolean tensor indicating whether the episode terminated.
-            frame (int): The current frame.
+            state (torch.Tensor): Current state.
+            epsilon (float): Exploration rate.
 
         Returns:
-            torch.Tensor: The calculated loss.
-
+            int: Selected action.
         """
-        Q_values = self.ValueNetWork(states)
-        values = Q_values[range(states.shape[0]), actions.long()]
-        next_Q_values_output = self.ValueNetWork(next_states)
-        next_Q_values = next_Q_values_output.max(-1)[0]
-        expected_Q_values = rewards + self.gamma * next_Q_values
-        # print(f'Q_values:\n{Q_values}\n\
-        #         actions:\n{actions}\n\
-        #         values:\n{values}\n\
-        #         rewards:\n{rewards}\n\
-        #         next_Q_Output:\n{next_Q_values_output}\n\
-        #         next_Q_values:\n{next_Q_values}\n\
-        #         expected_Q_values:\n{expected_Q_values}\n\
-        #         rewards:\n{rewards}\n\
-        #         terminated:\n{terminated}')
-        # print(f'is equal:{states[0] == states[1]}\n0-2:\n{states[0] == states[2]}')
-        # input()
-        self.writer.add_scalar('values', values.float().mean(), frame)
-        # self.writer.add_scalar('rewards', rewards.float().mean(), frame)
-        if self.log_level == 2:
-            print(f'values: {values}\nexpected_Q_values: {expected_Q_values}')
-            input("Press Enter to continue...")
-        expected_Q_values = torch.where(terminated, rewards, expected_Q_values)
-        loss = torch.nn.functional.mse_loss(values, expected_Q_values.detach())
-        return loss
-        
-    
-    def train(self,frame):
-        if self.replay_buffer.curSize < self.replay_buffer.batch_size:
-            return (0)
-        states, actions ,rewards, next_states ,terminated= self.replay_buffer.sample()
-        loss = self.calculate_loss(states, 
-                                   actions=actions, 
-                                   rewards=rewards, 
-                                   next_states=next_states,
-                                   terminated=terminated,
-                                   frame=frame)
-        self.optimizer.zero_grad()
-        loss.backward()
-        # for param in self.ValueNetWork.parameters():
-        #     param.grad.data.clamp_(-1,1)
-        torch.nn.utils.clip_grad_norm_(self.ValueNetWork.parameters(), max_norm=20, norm_type=2)
+        if random.random() < epsilon:
+            action = random.randrange(self.num_actions)
+        else:
+            q_values = self.q_network(state).detach().cpu().numpy()
+            action = np.argmax(q_values)
+            del q_values
+        return action
 
-        self.optimizer.step()
-        if self.log_level == 2:
-            self.print_model()
-        if self.log_level == 1:
-            self.writer.add_scalar('learning rate',self.optimizer.param_groups[0]['lr'],frame)
-            if frame % 1000 == 0:
-                for name, param in self.ValueNetWork.named_parameters():
-                    self.writer.add_histogram(tag=name+'_grad', values=param.grad, global_step=frame // 1000)
-                    self.writer.add_histogram(tag=name+'_data', values=param.data, global_step=frame // 1000)
-        # del Q_values, next_Q_values, expected_Q_values, values
-        return loss
-        
+    def calculate_loss(self, states, actions, rewards, next_states, dones):
+        """
+        Calculates the loss for a batch of experiences.
+
+        Args:
+            states (torch.Tensor): Batch of states.
+            actions (torch.Tensor): Batch of actions.
+            rewards (torch.Tensor): Batch of rewards.
+            next_states (torch.Tensor): Batch of next states.
+            dones (torch.Tensor): Batch of done flags.
+
+        Returns:
+            torch.Tensor: Loss value.
+        """
+        tmp = self.q_network(states)
+        rewards = rewards.to(self.device)
+        q_values = tmp[range(states.shape[0]), actions.long()]
+        default = rewards + self.gamma * self.target_network(next_states).max(dim=1)[0]
+        target = torch.where(dones.to(self.device), rewards, default).to(self.device).detach()
+        return F.mse_loss(target, q_values)
+
+    def reset(self):
+        """
+        Resets the target network to match the Q-network.
+        """
+        self.target_network.load_state_dict(self.q_network.state_dict())
+
+    def train(self, batch_size):
+        """
+        Performs a single learning step using a batch of experiences.
+
+        Args:
+            batch_size (int): Size of the batch.
+
+        Returns:
+            float: Loss value.
+        """
+        if batch_size < len(self.replay_buffer):
+            states, actions, rewards, next_states, dones = self.replay_buffer.sample(batch_size)
+            loss = self.calculate_loss(states, actions, rewards, next_states, dones)
+            self.optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.q_network.parameters(), max_norm=20, norm_type=2)
+            self.optimizer.step()
+            return loss.item()
+        return 0
